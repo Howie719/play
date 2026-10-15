@@ -1,11 +1,11 @@
 # THRESHOLD
 
-**Skip Ad to Live · v0.5.2**  
+**Skip Ad to Live · v0.6.0**  
 HUA Chencheng × YANG Haowei · Re-Imagine Internet
 
 There is an opening. Move towards it. Each interruption promises to bring it closer.
 
-A small monochrome browser work with three movements, five possible simulated ad formats, and an unresolved ending. The game interface is in English; the advertisements remain in Chinese. There is no message to deliver, explanatory notes panel, score screen, or participation summary.
+A small browser work with monochrome architecture, red-and-gold advertising, three movements, five possible simulated ad formats, and an unresolved ending. The game interface is in English; the advertisements remain in Chinese. There is no message to deliver, explanatory notes panel, score screen, or participation summary.
 
 ## Run and edit
 
@@ -32,4 +32,4 @@ The three-node route and five simulated ad formats remain. Clicking Begin contin
 
 The renderer uses a maximum of approximately two million pixels and 30 frames per second, with reduced-motion support and automatic pause when the page is hidden. It loads no images, video, web fonts, or third-party code. Actual low-end mobile devices and Safari still need device testing.
 
-All architecture is drawn in code. The visual references include James Turrell, Boullée, Peter Gric, and Thomas Demand; no images of their work are embedded. Ad brands and actions are fictional. Public source does not itself grant a license; this repository currently has no license file.
+All architecture is drawn in code. The visual references include James Turrell, Boullée, Peter Gric, and Thomas Demand; no images of their work are embedded. The advertising palette draws on the red-envelope and gold-coupon references in the project presentation. CSS gradients, embossed borders, and a slow button sheen create the effect without image assets. Ad brands and actions are fictional. Public source does not itself grant a license; this repository currently has no license file.
