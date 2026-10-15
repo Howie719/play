@@ -3,77 +3,64 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#091411">
-  <meta name="description" content="此门即将开启 / Skip Ad to Live。一座大厅，一句留言，五次打断。关于注意力与界面控制的浏览器作品。">
+  <meta name="theme-color" content="#050505">
+  <meta name="description" content="此门即将开启 / Skip Ad to Live。一道光，一句留言，五次打断。关于注意力与界面控制的浏览器作品。">
   <title>此门即将开启 — Skip Ad to Live</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath fill='%230c1c18' d='M0 0h40v40H0z'/%3E%3Cpath fill='none' stroke='%23d5c49c' stroke-width='2' d='M10 35V5h20v30M19 9v26'/%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath fill='%23050505' d='M0 0h40v40H0z'/%3E%3Cpath fill='%23fff' d='M18 7h4v26h-4z'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="style.css">
 </head>
 <body data-screen="title">
   <canvas id="hall" aria-hidden="true"></canvas>
-  <div class="grain" aria-hidden="true"></div>
-  <div class="vignette" aria-hidden="true"></div>
-  <header class="masthead">
-    <a class="wordmark" href="#" id="home" aria-label="此门即将开启，作品首页"><span class="door-mark" aria-hidden="true"></span><span>SKIP AD<br>TO LIVE<span class="wordmark-period">.</span></span></a>
-    <div class="top-center" aria-hidden="true">第七档案殿 <span> / </span> HALL 07</div>
+  <header class="masthead" id="masthead" hidden>
+    <div class="time-panel" id="time-panel"><time id="journey-time" aria-label="剩余时间">02:40</time><span class="sr-only">光熄灭前</span></div>
     <nav class="controls" aria-label="作品控制">
-      <button class="text-control" id="notes-open">作品手记 <span aria-hidden="true">↗</span></button>
-      <button class="sound-control" id="sound" aria-pressed="false" aria-label="开启声音"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3Z"/><path class="sound-wave" d="M16 8c2 2 2 6 0 8m3-11c4 4 4 10 0 14"/><path class="sound-slash" d="m16 10 5 5m0-5-5 5"/></svg><span class="sound-word">声音关</span></button>
-      <button class="text-control" id="pause" hidden>暂停 <span aria-hidden="true">Ⅱ</span></button>
+      <button class="text-control" id="sound" aria-pressed="false" aria-label="开启声音"><span class="sound-word">声音关</span></button>
+      <button class="text-control" id="pause" hidden>暂停</button>
     </nav>
   </header>
   <main id="main">
     <section class="intro" id="intro" aria-labelledby="title">
-      <p class="eyebrow"><span class="live-dot"></span> AN INTERFACE EXPERIMENT <span class="edition">/ 002</span></p>
-      <h1 id="title"><span>此门</span><span>即将开启<span class="title-dot">。</span></span></h1>
-      <p class="intro-copy">把一句留言，送进门后。<br>趁这里还有光。</p>
-      <button class="enter-button" id="enter"><span>进入大厅</span><span class="enter-arrow" aria-hidden="true">↗</span></button>
-      <p class="entry-meta">约 2–3 分钟 <span>·</span> 点击前进 <span>·</span> 可随时暂停</p>
+      <h1 class="sr-only" id="title">此门即将开启</h1>
+      <button class="enter-button" id="enter">开始<span class="sr-only">游玩</span></button>
     </section>
-    <aside class="scene-caption" id="scene-caption" aria-hidden="true"><span>07 / THE ARCHIVE</span><i></i><span>接收状态：等待</span></aside>
     <section class="journey" id="journey" aria-label="留言送达任务" hidden>
-      <div class="task-heading"><p class="eyebrow">你携带的留言 <span>/ MESSAGE 001</span></p><p class="message">我还记得这里有光。</p></div>
-      <div class="time-panel"><span class="tiny-label">光熄灭前</span><time id="journey-time">02:40</time><div class="time-track"><i id="journey-bar"></i></div></div>
-      <div class="journey-bottom">
-        <div class="route" aria-label="三个前进节点"><div class="route-line"></div><span data-node="0"><i>Ⅰ</i>入殿</span><span data-node="1"><i>Ⅱ</i>渡廊</span><span data-node="2"><i>Ⅲ</i>叩门</span></div>
-        <div class="next-step"><p id="phase-copy">前方的印记仍在发光。</p><button class="advance-button" id="advance"><span id="advance-label">走向第一个印记</span><span aria-hidden="true">→</span></button><span class="keyboard-hint">点击 / SPACE</span></div>
-        <div class="ledger"><span class="tiny-label">墙面记录</span><span><b id="stone-count">00</b><i>次参与</i></span></div>
-      </div>
+      <div class="task-heading"><p class="message">“我还记得这里有光。”</p><p class="task-copy">把这句留言，送进门后。</p></div>
+      <div class="next-step"><p id="phase-copy" role="status"></p><button class="advance-button" id="advance"><span id="advance-label">向前</span><span aria-hidden="true">↑</span></button></div>
     </section>
     <section class="ending" id="ending" hidden aria-labelledby="end-title">
-      <p class="eyebrow">ARCHIVE CLOSED <span>/ 留言未送达</span></p>
+      <p class="eyebrow">未送达 / UNDELIVERED</p>
       <h2 id="end-title">门已关闭。</h2>
       <p class="end-context" id="end-context">留言仍在你手中。</p>
       <div class="end-statement"><p>你的留言未被保存。</p><p>你的参与已被完整记录。</p></div>
-      <dl class="end-metrics"><div><dt>抵达印记</dt><dd id="end-nodes">3 / 3</dd></div><div><dt>广告种类</dt><dd id="end-ads">5 / 5</dd></div><div><dt>留下的参与</dt><dd id="end-clicks">0</dd></div></dl>
-      <button class="enter-button" id="replay"><span>重返大厅</span><span aria-hidden="true">↻</span></button>
+      <dl class="end-metrics"><div><dt>抵达</dt><dd id="end-nodes">3 / 3</dd></div><div><dt>广告</dt><dd id="end-ads">5 / 5</dd></div><div><dt>参与</dt><dd id="end-clicks">0</dd></div></dl>
+      <div class="end-actions"><button class="enter-button" id="replay">重新开始</button><button class="subtle-button" id="end-notes">作品手记</button></div>
     </section>
   </main>
-  <footer class="colophon"><span>HUA Chencheng <b>×</b> YANG Haowei</span><span class="colophon-middle">RE-IMAGINE INTERNET</span><span>THRESHOLD <b>/</b> v0.2.0</span></footer>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <div class="ad-backdrop" id="ad-backdrop" hidden></div>
   <section class="ad-host" id="ad-host" hidden aria-label="游戏内模拟广告"></section>
   <div class="pause-overlay" id="pause-overlay" hidden>
     <section class="pause-sheet" role="dialog" aria-modal="true" aria-labelledby="pause-title" tabindex="-1">
-      <p class="eyebrow">THE HALL CAN WAIT</p><h2 id="pause-title">停留片刻。</h2><p>光、行程与广告计时均已暂停。</p>
-      <button class="enter-button" id="resume"><span>继续前行</span><span aria-hidden="true">→</span></button><button class="subtle-button" id="return-home">返回标题</button>
+      <h2 id="pause-title">已暂停</h2><p>时间也停在这里。</p>
+      <button class="enter-button" id="resume">继续</button>
+      <div class="pause-actions"><button class="subtle-button" id="notes-open">作品手记</button><button class="subtle-button" id="return-home">返回开始</button></div>
     </section>
   </div>
   <div class="notes-overlay" id="notes-overlay" hidden>
     <section class="notes-sheet" role="dialog" aria-modal="true" aria-labelledby="notes-title" tabindex="-1">
-      <div class="notes-top"><p class="eyebrow">FIELD NOTES / 002</p><button id="notes-close" aria-label="关闭作品手记">×</button></div>
+      <div class="notes-top"><p class="eyebrow">FIELD NOTES / 003</p><button id="notes-close" aria-label="关闭作品手记">×</button></div>
       <h2 id="notes-title">此门即将开启</h2><p class="notes-subtitle">THRESHOLD / SKIP AD TO LIVE</p>
-      <p>你携带一句留言，穿过大厅的三个印记。每次处理弹窗，墙面就多一块发亮的记录。你越来越接近那扇门，门前的条件却不断增加。</p>
-      <h3>空间与参考</h3>
-      <p>冷青色玻璃借鉴 Damien Hirst 展示箱的隔离感；重复仪表与空置控制台回应 Thomas Demand 的《Control Room》；微小人物的呼吸与暖色，尝试承接 Patricia Piccinini《The Young Family》中身体的脆弱感。这些是本作品的视觉转译。</p>
-      <p>远处的光与大厅尺度，也延续 James Turrell、Peter Gric 与 Beksiński 的空间参考。页面画面由代码绘制，没有嵌入上述作品的图片。</p>
+      <p>你携带一句留言，穿过三道距离。每次靠近，另一个窗口就接管你的去向。门前的条件不断增加，而光还在消逝。</p>
+      <h3>光与距离</h3>
+      <p>画面只使用黑、白及其间的灰阶。James Turrell 的光隙、Boullée 的巨大尺度，以及 Peter Gric 的层叠空间，转译为一道光和反复退后的门框。细线幕缓慢错移，像 Thomas Demand 的纸质空间一样，让结构显露自身。</p>
+      <p>所有画面由代码绘制，没有嵌入上述艺术家的作品图片。移动由透视变化与少量线条构成；系统开启“减少动态效果”时会停下连续运动。</p>
       <h3>关于这个练习</h3>
-      <p>《Re-Imagine Internet》课堂作品。山寨在这里是一种仿制与改写界面的方法。弹窗使用虚构品牌；“每次操作成为建筑材料”是本游戏的规则。计数只在这次游戏中使用。</p>
-      <p class="notes-status">视觉实验 v0.2.0 · 仍在发展中<br>后续：确定观察平台、记录实际界面、课堂试玩调整节奏。</p>
+      <p>《Re-Imagine Internet》课堂作品。山寨在这里是一种仿制与改写界面的方法。弹窗使用虚构品牌；游戏中的参与计数仅保留在本次游玩，不发送到服务器。</p>
+      <p class="notes-status">HUA Chencheng × YANG Haowei<br>视觉实验 v0.3.0 · 约 2–3 分钟<br>点击前进 · 空格前进 · Esc 暂停 · 声音默认关闭</p>
       <a class="notes-download" href="threshold-offline.html" download>保存离线试玩版本 <span aria-hidden="true">↓</span></a>
     </section>
   </div>
-  <noscript><div class="noscript">请开启 JavaScript 进入大厅。此作品需要在浏览器中运行交互与画面。</div></noscript>
+  <noscript><div class="noscript">请开启 JavaScript 开始游玩。</div></noscript>
   <script src="engine.js"></script>
   <script src="scene.js"></script>
   <script src="game.js"></script>

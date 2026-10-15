@@ -7,7 +7,7 @@
   const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
   let width = window.innerWidth, height = window.innerHeight, dpr = 1, state = engine.snapshot();
   let last = performance.now(), lastDraw = 0, visualTime = 0, travel = 0, pointerX = 0, adKey = '', currentPhase = '', status = '';
-  let toastTimer, activeLayer = null, previousFocus = null, notesWasPaused = false, consentChecked = true;
+  let toastTimer, activeLayer = null, previousFocus = null, notesFromPause = false, consentChecked = true;
   let audio, soundOn = false, droneGain, drone, filter;
   function format(ms) { const s = Math.max(0, Math.ceil(ms / 1000)); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; }
   function toast(message) {
@@ -57,33 +57,30 @@
   }
   function resumeGame() { hideLayers(); engine.pause(false); last = performance.now(); syncNow(); }
   function openNotes() {
-    if (activeLayer) return;
-    previousFocus = document.activeElement; notesWasPaused = state.paused;
+    if (activeLayer === 'notes') return;
+    notesFromPause = activeLayer === 'pause';
+    if (!notesFromPause) previousFocus = document.activeElement;
     if (state.status === 'playing') engine.pause(true);
+    $('pause-overlay').hidden = true;
     activeLayer = 'notes'; $('notes-overlay').hidden = false; syncNow(); focusNext($('notes-close'));
   }
-  function closeNotes() { hideLayers(); if (state.status === 'playing' && !notesWasPaused) engine.pause(false); last = performance.now(); syncNow(); }
+  function closeNotes() {
+    $('notes-overlay').hidden = true;
+    if (notesFromPause) {
+      activeLayer = 'pause'; $('pause-overlay').hidden = false; focusNext($('notes-open'));
+    } else {
+      hideLayers(); if (state.status === 'playing') engine.pause(false);
+    }
+    last = performance.now(); syncNow();
+  }
   function goHome() {
-    hideLayers(false); engine.reset(); travel = 0; consentChecked = true; adKey = ''; currentPhase = ''; syncNow(); focusNext($('enter'));
+    hideLayers(false); clearTimeout(toastTimer); $('toast').classList.remove('visible'); engine.reset(); travel = 0; consentChecked = true; adKey = ''; currentPhase = ''; syncNow(); focusNext($('enter'));
   }
   function start() {
-    hideLayers(false); engine.start(); consentChecked = true; travel = 0; adKey = ''; currentPhase = ''; visualTime = 0;
+    hideLayers(false); clearTimeout(toastTimer); $('toast').classList.remove('visible'); engine.start(); consentChecked = true; travel = 0; adKey = ''; currentPhase = ''; visualTime = 0;
     last = performance.now(); syncNow(); tone(210, 1.7, .04); focusNext($('advance'));
   }
   function advance() { if (engine.advance()) { tone(165, .7, .04); syncNow(); } }
-  function flyIntoWall() {
-    const panel = $('ad-host').querySelector('.ad');
-    if (!panel || motionQuery.matches || typeof panel.animate !== 'function') return;
-    const box = panel.getBoundingClientRect(), target = renderer.getSlot(width, height, state.stones - 1, travel);
-    const tile = document.createElement('div'); tile.className = 'fly-tile'; tile.textContent = 'PARTICIPATION +1';
-    tile.style.left = box.x + 'px'; tile.style.top = box.y + 'px'; tile.style.width = box.width + 'px'; tile.style.height = box.height + 'px';
-    document.body.appendChild(tile);
-    const animation = tile.animate([
-      { transform: 'translate(0,0) scale(1)', opacity: .42 },
-      { transform: `translate(${target.x - box.x - box.width / 2}px,${target.y - box.y - box.height / 2}px) scale(${Math.max(.04, target.w / box.width)},${Math.max(.04, target.h / box.height)})`, opacity: .8 }
-    ], { duration: 780, easing: 'cubic-bezier(.22,.55,.23,1)' });
-    animation.onfinish = () => tile.remove(); animation.oncancel = () => tile.remove();
-  }
   const closeButton = action => `<button class="ad-close" data-action="${action}" aria-label="${action === 'fake-close' ? '广告内的叉号按钮' : '关闭此广告'}"><span aria-hidden="true">×</span></button>`;
   const templates = {
     gift: () => `<div class="ad ad-gift" role="region" aria-labelledby="ad-title" tabindex="-1">${closeButton('close')}<p class="ad-kind">门内生活 · 新客专享</p><div class="gift-badge" aria-hidden="true">仅限<br>此刻</div><h3 class="ad-title" id="ad-title">进门先领通行礼</h3><p class="ad-desc">恭喜你！一份心意已送达</p><div class="coupon"><span>你的专属通行好礼</span><strong>88</strong><i>点</i><small>距离更好的生活，只差一次点击</small></div><button class="ad-primary" data-action="claim">立即领取</button><p class="ad-fine">赞助内容 · 仅用于游戏内模拟</p></div>`,
@@ -106,7 +103,7 @@
   function render() {
     if (status !== state.status) {
       status = state.status; document.body.dataset.screen = status;
-      $('intro').hidden = status !== 'title'; $('scene-caption').hidden = status !== 'title';
+      $('intro').hidden = status !== 'title'; $('masthead').hidden = status === 'title'; $('time-panel').hidden = status !== 'playing';
       $('journey').hidden = status !== 'playing'; $('ending').hidden = status !== 'ended'; $('pause').hidden = status !== 'playing';
       if (status === 'ended') {
         $('end-context').textContent = state.reason === 'window' ? '留言仍在你手中。' : '光先一步熄灭了。留言仍在你手中。';
@@ -115,16 +112,20 @@
         tone(82, 2.6, .04); focusNext($('replay')); updateDrone();
       }
     }
-    $('journey-time').textContent = format(state.journeyMs);
-    $('journey-bar').style.transform = `scaleX(${state.journeyMs / state.config.journeyMs})`;
-    $('stone-count').textContent = String(state.stones).padStart(2, '0');
-    document.querySelectorAll('[data-node]').forEach((el, i) => { el.classList.toggle('done', i < state.nodes); el.classList.toggle('current', i === state.nodes); });
+    const remaining = format(state.journeyMs);
+    if ($('journey-time').textContent !== remaining) $('journey-time').textContent = remaining;
+    document.body.dataset.paused = String(!!activeLayer || state.paused);
+    document.body.dataset.ad = String(!!state.ad);
+    $('main').inert = !!activeLayer || !!state.ad;
+    $('masthead').inert = !!activeLayer;
+    $('ad-host').inert = !!activeLayer;
+    document.querySelector('.task-heading').hidden = state.nodes > 0 || state.phase !== 'ready';
     const phase = state.phase + ':' + state.nodes;
     if (phase !== currentPhase) {
       currentPhase = phase;
       $('advance').disabled = state.phase !== 'ready';
-      $('advance-label').textContent = ['走向第一个印记', '穿过下一道光', '走到门前'][Math.min(2, state.nodes)];
-      $('phase-copy').textContent = ({ ready: ['前方的印记仍在发光。', '第一道印记已留下。继续向前。', '门就在前方。'][state.nodes], walking: '正在靠近。', ad: '你的前行，暂时被另一个窗口接管。', arrival: '印记已留下。', submitting: '三个印记已齐。正在送达留言……', receiving: '门已开启接收。请先完成观看。' })[state.phase] || '';
+      $('advance-label').textContent = ['向前', '继续向前', '走近门'][Math.min(2, state.nodes)];
+      $('phase-copy').textContent = ({ ready: '', walking: '正在靠近', ad: '', arrival: '', submitting: '正在送达留言', receiving: '' })[state.phase] || '';
     }
     renderAd();
     if (state.ad === 'forced') {
@@ -138,7 +139,7 @@
     const button = event.target.closest('[data-action]'); if (!button) return;
     const action = button.dataset.action, ad = state.ad, step = state.adStep;
     if (!engine.interact(action)) return;
-    state = engine.snapshot(); flyIntoWall();
+    state = engine.snapshot();
     if (ad === 'gift' && action === 'claim') toast('88 点已记入通行礼。留言仍待送达。');
     if (ad === 'falseClose' && action === 'fake-close') toast('已进入领取通道。请寻找返回原任务的入口。');
     if (action === 'consent') toast('校验仍未完成。你仍可返回原任务。');
@@ -149,13 +150,13 @@
   $('ad-host').addEventListener('change', event => {
     if (event.target.id !== 'consent-check') return;
     consentChecked = event.target.checked;
-    if (engine.interact('toggle')) { state = engine.snapshot(); flyIntoWall(); render(); }
+    if (engine.interact('toggle')) { state = engine.snapshot(); render(); }
   });
   $('enter').addEventListener('click', start); $('replay').addEventListener('click', start); $('advance').addEventListener('click', advance);
   $('sound').addEventListener('click', toggleSound); $('pause').addEventListener('click', () => activeLayer === 'pause' ? resumeGame() : pauseGame());
   $('resume').addEventListener('click', resumeGame); $('return-home').addEventListener('click', goHome);
   $('notes-open').addEventListener('click', openNotes); $('notes-close').addEventListener('click', closeNotes);
-  $('home').addEventListener('click', event => { event.preventDefault(); if (state.status === 'playing') pauseGame(); else goHome(); });
+  $('end-notes').addEventListener('click', openNotes);
   document.addEventListener('keydown', event => {
     if (event.key === 'Escape') {
       event.preventDefault();
@@ -180,24 +181,24 @@
     last = performance.now(); updateDrone();
   });
   function resize() {
-    width = window.innerWidth; height = window.innerHeight; dpr = Math.min(window.devicePixelRatio || 1, 1.7);
+    width = window.innerWidth; height = window.innerHeight; dpr = Math.min(window.devicePixelRatio || 1, 1.5, Math.sqrt(2000000 / (width * height)));
     canvas.width = Math.round(width * dpr); canvas.height = Math.round(height * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0); lastDraw = 0;
   }
   window.addEventListener('resize', resize);
-  window.addEventListener('pointermove', event => { pointerX = event.pointerType === 'mouse' ? event.clientX / width - .5 : 0; }, { passive: true });
+  window.addEventListener('pointermove', event => { if (!activeLayer && !state.paused) pointerX = event.pointerType === 'mouse' ? event.clientX / width - .5 : 0; }, { passive: true });
   function frame(now) {
     const dt = Math.max(0, now - last); last = now;
     if (!document.hidden) {
       if (!activeLayer && !state.paused) visualTime += Math.min(dt, 120);
       if (state.status === 'playing') state = engine.tick(dt);
       let target = state.nodes;
-      if (state.phase === 'walking') target += 1 - state.phaseMs / state.config.walkMs;
+      if (state.phase === 'walking' && !motionQuery.matches) target += 1 - state.phaseMs / state.config.walkMs;
       else if (state.phase === 'ad') target += 1;
       const smoothing = motionQuery.matches ? 1 : Math.min(1, dt / 250);
       if (!state.paused && !activeLayer) travel += (target - travel) * smoothing;
       if (now - lastDraw >= (motionQuery.matches ? 180 : 33) || now === 0) {
-        renderer.draw(ctx, { width, height, time: visualTime, travel, stones: state.stones, ended: state.status === 'ended', receiving: state.phase === 'receiving', motion: !motionQuery.matches && !activeLayer, pointerX: motionQuery.matches ? 0 : pointerX });
+        renderer.draw(ctx, { width, height, time: visualTime, travel, screen: state.status, ended: state.status === 'ended', receiving: state.phase === 'receiving', reducedMotion: motionQuery.matches, pointerX });
         lastDraw = now; render();
       }
     }
