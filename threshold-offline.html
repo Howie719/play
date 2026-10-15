@@ -81,8 +81,9 @@ body[data-ad="true"] .journey { opacity: .18; }
 .coupon small { display: block; font-size: 10px; opacity: .8; margin-top: 6px; }
 .ad-speed { background: radial-gradient(ellipse at 16% 28%, #ef69236b, transparent 65%), repeating-conic-gradient(from -10deg at 24% 36%, #ffc86a09 0deg 8deg, transparent 8deg 22deg), linear-gradient(145deg, #bb1a19, #790918 80%); }
 .ad-speed .ad-topline { padding-right: 25px; }
-.ad-speed .ad-close-small { width: 30px; height: 30px; top: 6px; right: 6px; font-size: 14px; color: #e6bca0; border: 1px solid #bf785c; border-radius: 50%; }
-.ad-close-small:hover { background: #ffe6a01a; }
+.ad-speed .ad-close-small { width: 44px; height: 44px; top: 0; right: 0; font-size: 14px; color: #e6bca0; }
+.ad-close-small::before { content: ""; position: absolute; inset: 7px; border: 1px solid #bf785c; border-radius: 50%; pointer-events: none; }
+.ad-close-small:hover::before { background: #ffe6a01a; }
 .ad-close-fake { position: absolute; top: 78px; right: 30px; width: 82px; height: 82px; border: 2px solid #fff1af; border-radius: 50%; background: linear-gradient(135deg, #fff8d8, #ffda76 45%, #e7a532); color: #a41719; box-shadow: inset 0 0 0 4px #eeb94a, inset 0 0 0 5px #fff0af, 0 5px 0 #711018, 0 8px 22px #40061066; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; }
 .ad-close-fake > span { font: 52px/.7 Arial, sans-serif; }
 .ad-close-fake > small { font: 10px/1.4 "PingFang SC", "Microsoft YaHei", sans-serif; margin-top: 5px; }
@@ -171,7 +172,6 @@ body[data-paused="true"] *, body[data-paused="true"] *::before, body[data-paused
   <header class="masthead" id="masthead" hidden>
     <div class="time-panel"><time id="journey-time" aria-label="Time remaining">02:40</time></div>
     <nav class="controls" aria-label="Game controls">
-      <button class="text-control" id="sound" aria-pressed="false" aria-label="Turn sound on"><span class="sound-word">Sound off</span></button>
       <button class="text-control" id="pause">Pause</button>
     </nav>
   </header>
@@ -357,7 +357,8 @@ body[data-paused="true"] *, body[data-paused="true"] *::before, body[data-paused
       const breath = reducedMotion ? 0 : Math.sin(t * .24) * .014;
       const cx = w * .5 + (reducedMotion ? 0 : pointerX * Math.min(w * .012, 12));
       const cy = h * (.48 + breath * .18);
-      const focal = h * (1.03 + breath);
+      // Keep the side curtains inside a tall, narrow viewport as well.
+      const focal = Math.min(h, w * 1.6) * (1.03 + breath);
       const p = (x, y, z) => ({ x: cx + x * focal / (z - camera), y: cy + y * focal / (z - camera) });
       const shut = ended ? (reducedMotion ? 1 : clamp(closing, 0, 1)) : 0;
       const light = 1 - shut * .83;
@@ -444,7 +445,6 @@ body[data-paused="true"] *, body[data-paused="true"] *::before, body[data-paused
   let toastTimer, activeLayer = null, previousFocus = null;
   let closing = 0, aperture = 0, entrance = 1, entering = false;
   const entryDuration = 1800;
-  let audio, soundOn = false, droneGain, drone, filter;
   function format(ms) { const s = Math.max(0, Math.ceil(ms / 1000)); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; }
   function toast(message, language = 'en') {
     clearTimeout(toastTimer); $('toast').lang = language; $('toast').textContent = message; $('toast').classList.add('visible');
@@ -454,38 +454,8 @@ body[data-paused="true"] *, body[data-paused="true"] *::before, body[data-paused
     clearTimeout(toastTimer);
     $('toast').classList.remove('visible'); $('toast').textContent = ''; $('toast').lang = 'en';
   }
-  function audioInit() {
-    if (audio) return;
-    const AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) { toast('Sound is unavailable in this browser. You can keep playing.'); return; }
-    try {
-      audio = new AC(); drone = audio.createOscillator(); drone.type = 'sine'; drone.frequency.value = 48;
-      droneGain = audio.createGain(); droneGain.gain.value = 0;
-      filter = audio.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 160;
-      drone.connect(filter).connect(droneGain).connect(audio.destination); drone.start();
-    } catch { audio = null; toast('Sound is unavailable.'); }
-  }
-  function updateDrone() {
-    if (!audio) return;
-    const volume = soundOn && !state.paused && !activeLayer && !document.hidden ? (state.status === 'ended' ? .015 : .055) : 0;
-    droneGain.gain.setTargetAtTime(volume, audio.currentTime, .2);
-  }
-  function tone(freq = 190, seconds = .6, volume = .055) {
-    if (!soundOn || !audio) return;
-    const osc = audio.createOscillator(), amp = audio.createGain(), now = audio.currentTime;
-    osc.type = 'sine'; osc.frequency.setValueAtTime(freq, now); osc.frequency.exponentialRampToValueAtTime(freq * .52, now + seconds);
-    amp.gain.setValueAtTime(.0001, now); amp.gain.exponentialRampToValueAtTime(volume, now + .015); amp.gain.exponentialRampToValueAtTime(.0001, now + seconds);
-    osc.connect(amp).connect(audio.destination); osc.start(); osc.stop(now + seconds + .03);
-    osc.onended = () => { osc.disconnect(); amp.disconnect(); };
-  }
-  function toggleSound() {
-    audioInit(); if (!audio) return;
-    soundOn = !soundOn; audio.resume().catch(() => {});
-    $('sound').setAttribute('aria-pressed', String(soundOn)); $('sound').setAttribute('aria-label', soundOn ? 'Turn sound off' : 'Turn sound on');
-    document.querySelector('.sound-word').textContent = soundOn ? 'Sound on' : 'Sound off'; updateDrone(); if (soundOn) tone(130, 1, .035);
-  }
-  function focusNext(el) { if (el) requestAnimationFrame(() => { if (el.isConnected && !el.hidden) el.focus({ preventScroll: true }); }); }
-  function syncNow() { state = engine.snapshot(); render(); updateDrone(); }
+  function focusNext(el) { if (el) requestAnimationFrame(() => { if (el.isConnected && !el.disabled && !el.closest('[hidden], [inert]')) el.focus({ preventScroll: true }); }); }
+  function syncNow() { state = engine.snapshot(); render(); }
   function hideLayers(restore = true) {
     $('pause-overlay').hidden = true; activeLayer = null;
     if (restore) focusNext(previousFocus && previousFocus.isConnected ? previousFocus : $('advance'));
@@ -507,10 +477,10 @@ body[data-paused="true"] *, body[data-paused="true"] *::before, body[data-paused
     entrance = fromTitle && !motionQuery.matches ? 0 : 1; entering = entrance < 1;
     document.body.style.setProperty('--entry-progress', String(entrance));
     // Keep visualTime: the opening and its slow motion belong to the same space.
-    last = performance.now(); syncNow(); tone(210, 1.7, .04);
+    last = performance.now(); syncNow();
     if (!entering) focusNext($('advance'));
   }
-  function advance() { if (!entering && engine.advance()) { tone(165, .7, .04); syncNow(); } }
+  function advance() { if (!entering && engine.advance()) syncNow(); }
   const closeButton = action => `<button class="ad-close" data-action="${action}" aria-label="${action === 'fake-close' ? '广告内的叉号按钮' : '关闭此广告'}"><span aria-hidden="true">×</span></button>`;
   const templates = {
     gift: () => `<div class="ad ad-gift" role="region" aria-labelledby="ad-title" tabindex="-1">${closeButton('close')}<p class="ad-kind">门内生活 · 新客专享</p><div class="gift-badge" aria-hidden="true">${state.adStep ? '领取<br>成功' : '仅限<br>此刻'}</div><h3 class="ad-title" id="ad-title">${state.adStep ? '通行礼已领取' : '进门先领通行礼'}</h3><p class="ad-desc">${state.adStep ? '88 点已记入本次通行礼。' : '恭喜你！一份心意已送达'}</p><div class="coupon"><span>${state.adStep ? '领取成功 · 本次有效' : '你的专属通行好礼'}</span><strong>88</strong><i>点</i><small>${state.adStep ? '好礼已收下，前方仍有一段路。' : '距离更好的生活，只差一次点击'}</small></div><button class="ad-primary" data-action="${state.adStep ? 'return-task' : 'claim'}">${state.adStep ? '收下好礼，继续前往' : '立即领取'}</button><p class="ad-fine">赞助内容 · 仅用于游戏内模拟</p></div>`,
@@ -520,7 +490,7 @@ body[data-paused="true"] *, body[data-paused="true"] *::before, body[data-paused
       const complete = state.adStep === 2;
       const title = complete ? (state.serviceConfirmed ? '持续通行服务已开启' : '通行校验已完成') : (state.adStep ? '持续通行服务' : '通行校验');
       const description = complete ? (state.serviceConfirmed ? '已记录你的选择，通行校验已完成。' : '已跳过持续通行服务，通行校验已完成。') : (state.adStep ? '为下一次抵达，提前准备。' : '门已感知到你的到来。<br>请完成最后一步，继续通行。');
-      return `<div class="ad ad-verify" role="region" aria-labelledby="ad-title" tabindex="-1"><div class="ad-topline"><span>ARCHIVE / 07</span><em>赞助内容</em></div><h3 class="ad-title" id="ad-title">${title}</h3><p class="ad-desc">${description}</p><div class="verify-code"><i aria-hidden="true">${complete ? '✓' : state.adStep ? '∞' : 'Ⅲ'}</i><div>ACCESS PROTOCOL<br>${complete ? 'VERIFICATION COMPLETE' : state.adStep ? 'CONTINUOUS SERVICE' : 'AWAITING VERIFICATION'}</div></div>${complete ? '<p class="ad-desc">仅为游戏内模拟，不会产生真实订阅或扣费。</p><button class="ad-primary" data-action="return-task">完成校验，继续前往</button>' : state.adStep ? `<label class="consent-row"><input id="consent-check" type="checkbox" ${state.serviceSelected ? 'checked' : ''}><div>开通持续通行服务<span>这是游戏内的模拟选项</span></div></label><button class="ad-primary" data-action="consent">确认并继续</button>` : '<button class="ad-primary" data-action="verify">继续校验 →</button>'}${complete ? '' : '<button class="actual-close" data-action="return-task">返回原任务</button>'}</div>`;
+      return `<div class="ad ad-verify" role="region" aria-labelledby="ad-title" tabindex="-1"><div class="ad-topline"><span>ARCHIVE / 07</span><em>赞助内容</em></div><h3 class="ad-title" id="ad-title">${title}</h3><p class="ad-desc">${description}</p><div class="verify-code"><i aria-hidden="true">${complete ? '✓' : state.adStep ? '∞' : 'Ⅲ'}</i><div>ACCESS PROTOCOL<br>${complete ? 'VERIFICATION COMPLETE' : state.adStep ? 'CONTINUOUS SERVICE' : 'AWAITING VERIFICATION'}</div></div>${complete ? '<button class="ad-primary" data-action="return-task">完成校验，继续前往</button><p class="ad-fine">赞助内容 · 仅用于游戏内模拟</p>' : state.adStep ? `<label class="consent-row"><input id="consent-check" type="checkbox" ${state.serviceSelected ? 'checked' : ''}><div>开通持续通行服务<span>这是游戏内的模拟选项</span></div></label><button class="ad-primary" data-action="consent">确认并继续</button>` : '<button class="ad-primary" data-action="verify">继续校验 →</button>'}${complete ? '' : '<button class="actual-close" data-action="return-task">返回原任务</button>'}</div>`;
     },
     forced: () => `<div class="ad ad-forced" role="region" aria-labelledby="ad-title" tabindex="-1"><div class="forced-status"><div><p>必须完整观看</p><strong id="sponsor-seconds">30s</strong></div><div class="reception"><p>入口开放倒计时</p><strong id="receive-seconds">12s</strong></div></div><div class="sponsor-film"><small>MENNEI / SPONSORED FILM</small><div class="film-door" aria-hidden="true"></div><p id="ad-title">为你开启更远的门</p></div><div class="forced-playback"><span>完整观看后，即可进入</span><span id="playback-position">00:00 / 00:30</span></div><div class="ad-progress"><i id="ad-bar"></i></div><p class="forced-copy">你已到达。进入之前，请先看完这段赞助内容。</p><button class="blocked-close" data-action="blocked-close">播放结束后可关闭 ×</button></div>`
   };
@@ -532,7 +502,6 @@ body[data-paused="true"] *, body[data-paused="true"] *::before, body[data-paused
     const oldAd = adKey.split(':')[0]; adKey = key;
     $('ad-host').innerHTML = state.ad ? templates[state.ad]() : '';
     if (state.ad) {
-      tone(state.ad === 'forced' ? 115 : 390, .35, .03);
       focusNext($('ad-host').querySelector('.ad'));
     } else if (oldAd) {
       clearToast();
@@ -546,7 +515,7 @@ body[data-paused="true"] *, body[data-paused="true"] *::before, body[data-paused
       $('journey').hidden = status !== 'playing'; $('ending').hidden = status !== 'ended';
       if (status === 'ended') {
         clearToast();
-        tone(82, 2.6, .04); focusNext($('replay')); updateDrone();
+        focusNext($('replay'));
       }
     }
     $('intro').hidden = status !== 'title' && !entering;
@@ -593,11 +562,12 @@ body[data-paused="true"] *, body[data-paused="true"] *::before, body[data-paused
     if (engine.interact('toggle', event.target.checked)) { state = engine.snapshot(); render(); }
   });
   $('enter').addEventListener('click', start); $('replay').addEventListener('click', start); $('advance').addEventListener('click', advance);
-  $('sound').addEventListener('click', toggleSound); $('pause').addEventListener('click', () => activeLayer === 'pause' ? resumeGame() : pauseGame());
+  $('pause').addEventListener('click', () => activeLayer === 'pause' ? resumeGame() : pauseGame());
   $('resume').addEventListener('click', resumeGame); $('return-home').addEventListener('click', goHome);
   document.addEventListener('keydown', event => {
     if (event.key === 'Escape') {
       event.preventDefault();
+      if (event.repeat) return;
       if (activeLayer === 'pause') resumeGame(); else pauseGame();
       return;
     }
@@ -616,7 +586,7 @@ body[data-paused="true"] *, body[data-paused="true"] *::before, body[data-paused
   });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden && state.status === 'playing' && !activeLayer) pauseGame();
-    last = performance.now(); updateDrone();
+    last = performance.now();
   });
   function resize() {
     width = window.innerWidth; height = window.innerHeight; dpr = Math.min(window.devicePixelRatio || 1, 1.5, Math.sqrt(2000000 / (width * height)));
@@ -637,7 +607,7 @@ body[data-paused="true"] *, body[data-paused="true"] *::before, body[data-paused
             entering = false; syncNow(); focusNext($('advance'));
           }
         }
-      } else if (state.status === 'playing') state = engine.tick(dt);
+      } else if (state.status === 'playing' && !state.paused && !activeLayer) state = engine.tick(dt);
       let target = state.nodes;
       if (state.phase === 'walking' && !motionQuery.matches) target += 1 - state.phaseMs / state.config.walkMs;
       else if (state.phase === 'ad') target += 1;
@@ -650,7 +620,8 @@ body[data-paused="true"] *, body[data-paused="true"] *::before, body[data-paused
           aperture += (opening - aperture) * (motionQuery.matches ? 1 : Math.min(1, dt / 650));
         }
       }
-      if (now - lastDraw >= (motionQuery.matches ? 180 : 33) || now === 0) {
+      const frozen = !!activeLayer || state.paused;
+      if (lastDraw === 0 || (!frozen && now - lastDraw >= (motionQuery.matches ? 180 : 33))) {
         renderer.draw(ctx, { width, height, time: visualTime, travel, screen: state.status, ended: state.status === 'ended', aperture, closing, entrance, reducedMotion: motionQuery.matches, pointerX });
         lastDraw = now; render();
       }

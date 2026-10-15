@@ -72,8 +72,9 @@ body[data-ad="true"] .journey { opacity: .18; }
 .coupon small { display: block; font-size: 10px; opacity: .8; margin-top: 6px; }
 .ad-speed { background: radial-gradient(ellipse at 16% 28%, #ef69236b, transparent 65%), repeating-conic-gradient(from -10deg at 24% 36%, #ffc86a09 0deg 8deg, transparent 8deg 22deg), linear-gradient(145deg, #bb1a19, #790918 80%); }
 .ad-speed .ad-topline { padding-right: 25px; }
-.ad-speed .ad-close-small { width: 30px; height: 30px; top: 6px; right: 6px; font-size: 14px; color: #e6bca0; border: 1px solid #bf785c; border-radius: 50%; }
-.ad-close-small:hover { background: #ffe6a01a; }
+.ad-speed .ad-close-small { width: 44px; height: 44px; top: 0; right: 0; font-size: 14px; color: #e6bca0; }
+.ad-close-small::before { content: ""; position: absolute; inset: 7px; border: 1px solid #bf785c; border-radius: 50%; pointer-events: none; }
+.ad-close-small:hover::before { background: #ffe6a01a; }
 .ad-close-fake { position: absolute; top: 78px; right: 30px; width: 82px; height: 82px; border: 2px solid #fff1af; border-radius: 50%; background: linear-gradient(135deg, #fff8d8, #ffda76 45%, #e7a532); color: #a41719; box-shadow: inset 0 0 0 4px #eeb94a, inset 0 0 0 5px #fff0af, 0 5px 0 #711018, 0 8px 22px #40061066; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; }
 .ad-close-fake > span { font: 52px/.7 Arial, sans-serif; }
 .ad-close-fake > small { font: 10px/1.4 "PingFang SC", "Microsoft YaHei", sans-serif; margin-top: 5px; }

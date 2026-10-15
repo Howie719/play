@@ -34,7 +34,8 @@
       const breath = reducedMotion ? 0 : Math.sin(t * .24) * .014;
       const cx = w * .5 + (reducedMotion ? 0 : pointerX * Math.min(w * .012, 12));
       const cy = h * (.48 + breath * .18);
-      const focal = h * (1.03 + breath);
+      // Keep the side curtains inside a tall, narrow viewport as well.
+      const focal = Math.min(h, w * 1.6) * (1.03 + breath);
       const p = (x, y, z) => ({ x: cx + x * focal / (z - camera), y: cy + y * focal / (z - camera) });
       const shut = ended ? (reducedMotion ? 1 : clamp(closing, 0, 1)) : 0;
       const light = 1 - shut * .83;
