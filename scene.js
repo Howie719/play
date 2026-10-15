@@ -16,7 +16,7 @@
       ctx.strokeStyle = `rgba(255,255,255,${alpha})`; ctx.lineWidth = weight; ctx.stroke();
     }
     function draw(ctx, options) {
-      const { width: w, height: h, travel = 0, time = 0, ended = false, receiving = false, screen = 'playing', reducedMotion = false, pointerX = 0 } = options;
+      const { width: w, height: h, travel = 0, time = 0, ended = false, aperture = 0, closing = 0, screen = 'playing', reducedMotion = false, pointerX = 0 } = options;
       const key = `${w}:${h}`;
       if (key !== backdropKey) {
         backdropKey = key; backdrop = createCanvas(Math.ceil(w), Math.ceil(h));
@@ -34,14 +34,15 @@
       const cy = h * (.48 + breath * .18);
       const focal = h * (1.03 + breath);
       const p = (x, y, z) => ({ x: cx + x * focal / (z - camera), y: cy + y * focal / (z - camera) });
-      const light = ended ? .17 : 1;
+      const shut = ended ? (reducedMotion ? 1 : clamp(closing, 0, 1)) : 0;
+      const light = 1 - shut * .83;
       const architecture = intro ? .25 : 1;
       ctx.save();
       // Dark architectural planes and a perspective reflection of the aperture.
       path(ctx, [p(-4, 2.8, 1 + camera), p(4, 2.8, 1 + camera), p(4, 2.8, 25), p(-4, 2.8, 25)], '#0c0c0c');
       path(ctx, [p(-4, -10, 1 + camera), p(-4, 2.8, 1 + camera), p(-4, 2.8, 25), p(-4, -10, 25)], '#080808');
       path(ctx, [p(4, -10, 1 + camera), p(4, 2.8, 1 + camera), p(4, 2.8, 25), p(4, -10, 25)], '#050505');
-      const spread = ended ? .08 : (intro ? .1 : .34 + travel * .045 + (receiving ? .38 : 0));
+      const spread = (intro ? .1 : .34 + travel * .045 + aperture * .38) * (1 - shut) ** 2;
       const sill = p(0, 2.8, 24);
       const floorLight = ctx.createLinearGradient(0, sill.y, 0, h);
       floorLight.addColorStop(0, `rgba(255,255,255,${.19 * light})`);
@@ -84,7 +85,7 @@
         path(ctx, [p(-spread - pad, -7.5 - pad, 24), p(spread + pad, -7.5 - pad, 24), p(spread + pad, 2.8, 24), p(-spread - pad, 2.8, 24)], null, `rgba(255,255,255,${(.025 + (6 - i) * .008) * light})`, .7);
       }
       const door = [p(-spread, -7.5, 24), p(spread, -7.5, 24), p(spread, 2.8, 24), p(-spread, 2.8, 24)];
-      path(ctx, door, ended ? '#252525' : '#f7f7f7');
+      if (spread > .001) path(ctx, door, '#f7f7f7');
       if (!ended && !intro) {
         const face = ctx.createLinearGradient(door[0].x, 0, door[1].x, 0);
         face.addColorStop(0, '#979797'); face.addColorStop(.4, '#f9f9f9'); face.addColorStop(1, '#ffffff');

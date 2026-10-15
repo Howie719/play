@@ -1,68 +1,50 @@
 <!doctype html>
-<html lang="zh-Hans">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#050505">
-  <meta name="description" content="此门即将开启 / Skip Ad to Live。一道光，一句留言，五次打断。关于注意力与界面控制的浏览器作品。">
-  <title>此门即将开启 — Skip Ad to Live</title>
+  <meta name="description" content="THRESHOLD. There is an opening. A monochrome browser experience about approaching, waiting, and being interrupted.">
+  <title>THRESHOLD</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath fill='%23050505' d='M0 0h40v40H0z'/%3E%3Cpath fill='%23fff' d='M18 7h4v26h-4z'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=0.4.0">
 </head>
 <body data-screen="title">
   <canvas id="hall" aria-hidden="true"></canvas>
   <header class="masthead" id="masthead" hidden>
-    <div class="time-panel" id="time-panel"><time id="journey-time" aria-label="剩余时间">02:40</time><span class="sr-only">光熄灭前</span></div>
-    <nav class="controls" aria-label="作品控制">
-      <button class="text-control" id="sound" aria-pressed="false" aria-label="开启声音"><span class="sound-word">声音关</span></button>
-      <button class="text-control" id="pause" hidden>暂停</button>
+    <div class="time-panel"><time id="journey-time" aria-label="Time remaining">02:40</time></div>
+    <nav class="controls" aria-label="Game controls">
+      <button class="text-control" id="sound" aria-pressed="false" aria-label="Turn sound on"><span class="sound-word">Sound off</span></button>
+      <button class="text-control" id="pause">Pause</button>
     </nav>
   </header>
   <main id="main">
     <section class="intro" id="intro" aria-labelledby="title">
-      <h1 class="sr-only" id="title">此门即将开启</h1>
-      <button class="enter-button" id="enter">开始<span class="sr-only">游玩</span></button>
+      <h1 class="sr-only" id="title">THRESHOLD</h1>
+      <button class="enter-button" id="enter">Begin</button>
     </section>
-    <section class="journey" id="journey" aria-label="留言送达任务" hidden>
-      <div class="task-heading"><p class="message">“我还记得这里有光。”</p><p class="task-copy">把这句留言，送进门后。</p></div>
-      <div class="next-step"><p id="phase-copy" role="status"></p><button class="advance-button" id="advance"><span id="advance-label">向前</span><span aria-hidden="true">↑</span></button></div>
+    <section class="journey" id="journey" aria-label="Approach the opening" hidden>
+      <div class="task-heading" id="narrative"><p class="message" id="narrative-line" role="status">There is an opening.</p></div>
+      <div class="next-step"><p id="phase-copy" role="status"></p><button class="advance-button" id="advance"><span id="advance-label">Approach</span><span aria-hidden="true">↑</span></button></div>
     </section>
     <section class="ending" id="ending" hidden aria-labelledby="end-title">
-      <p class="eyebrow">未送达 / UNDELIVERED</p>
-      <h2 id="end-title">门已关闭。</h2>
-      <p class="end-context" id="end-context">留言仍在你手中。</p>
-      <div class="end-statement"><p>你的留言未被保存。</p><p>你的参与已被完整记录。</p></div>
-      <dl class="end-metrics"><div><dt>抵达</dt><dd id="end-nodes">3 / 3</dd></div><div><dt>广告</dt><dd id="end-ads">5 / 5</dd></div><div><dt>参与</dt><dd id="end-clicks">0</dd></div></dl>
-      <div class="end-actions"><button class="enter-button" id="replay">重新开始</button><button class="subtle-button" id="end-notes">作品手记</button></div>
+      <h2 id="end-title">You are still here.</h2>
+      <button class="enter-button" id="replay">Again</button>
     </section>
   </main>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <div class="ad-backdrop" id="ad-backdrop" hidden></div>
-  <section class="ad-host" id="ad-host" hidden aria-label="游戏内模拟广告"></section>
+  <section class="ad-host" id="ad-host" hidden lang="zh-Hans" aria-label="游戏内模拟广告"></section>
   <div class="pause-overlay" id="pause-overlay" hidden>
     <section class="pause-sheet" role="dialog" aria-modal="true" aria-labelledby="pause-title" tabindex="-1">
-      <h2 id="pause-title">已暂停</h2><p>时间也停在这里。</p>
-      <button class="enter-button" id="resume">继续</button>
-      <div class="pause-actions"><button class="subtle-button" id="notes-open">作品手记</button><button class="subtle-button" id="return-home">返回开始</button></div>
+      <h2 id="pause-title">Paused</h2>
+      <button class="enter-button" id="resume">Resume</button>
+      <button class="subtle-button" id="return-home">Back to start</button>
     </section>
   </div>
-  <div class="notes-overlay" id="notes-overlay" hidden>
-    <section class="notes-sheet" role="dialog" aria-modal="true" aria-labelledby="notes-title" tabindex="-1">
-      <div class="notes-top"><p class="eyebrow">FIELD NOTES / 003</p><button id="notes-close" aria-label="关闭作品手记">×</button></div>
-      <h2 id="notes-title">此门即将开启</h2><p class="notes-subtitle">THRESHOLD / SKIP AD TO LIVE</p>
-      <p>你携带一句留言，穿过三道距离。每次靠近，另一个窗口就接管你的去向。门前的条件不断增加，而光还在消逝。</p>
-      <h3>光与距离</h3>
-      <p>画面只使用黑、白及其间的灰阶。James Turrell 的光隙、Boullée 的巨大尺度，以及 Peter Gric 的层叠空间，转译为一道光和反复退后的门框。细线幕缓慢错移，像 Thomas Demand 的纸质空间一样，让结构显露自身。</p>
-      <p>所有画面由代码绘制，没有嵌入上述艺术家的作品图片。移动由透视变化与少量线条构成；系统开启“减少动态效果”时会停下连续运动。</p>
-      <h3>关于这个练习</h3>
-      <p>《Re-Imagine Internet》课堂作品。山寨在这里是一种仿制与改写界面的方法。弹窗使用虚构品牌；游戏中的参与计数仅保留在本次游玩，不发送到服务器。</p>
-      <p class="notes-status">HUA Chencheng × YANG Haowei<br>视觉实验 v0.3.0 · 约 2–3 分钟<br>点击前进 · 空格前进 · Esc 暂停 · 声音默认关闭</p>
-      <a class="notes-download" href="threshold-offline.html" download>保存离线试玩版本 <span aria-hidden="true">↓</span></a>
-    </section>
-  </div>
-  <noscript><div class="noscript">请开启 JavaScript 开始游玩。</div></noscript>
-  <script src="engine.js"></script>
-  <script src="scene.js"></script>
-  <script src="game.js"></script>
+  <noscript><div class="noscript">Enable JavaScript to begin.</div></noscript>
+  <script src="engine.js?v=0.4.0"></script>
+  <script src="scene.js?v=0.4.0"></script>
+  <script src="game.js?v=0.4.0"></script>
 </body>
 </html>

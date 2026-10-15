@@ -1,39 +1,35 @@
-# 此门即将开启 / THRESHOLD
+# THRESHOLD
 
-**Skip Ad to Live · v0.3.0**  
+**Skip Ad to Live · v0.4.0**  
 HUA Chencheng × YANG Haowei · Re-Imagine Internet
 
-一道光、三个前进节点、五类弹窗和一个结局。把一句留言送进门后，前行却不断被广告接管。黑白空间以层叠门框、缓慢错移的线幕和透视移动构成；关闭广告后直接回到空间，不产生贴纸或墙面牌块。
+There is an opening. Move towards it. Each interruption promises to bring it closer.
 
-## 运行与修改
+A small monochrome browser work with three movements, five simulated ad formats, and an unresolved ending. The game interface is in English; the advertisements remain in Chinese. There is no message to deliver, explanatory notes panel, score screen, or participation summary.
 
-这是纯 HTML / CSS / JavaScript 网站，没有第三方运行时依赖、服务器账号或真实支付。可直接打开 `threshold-offline.html` 离线试玩。在线版本从本仓库 `main` 分支的根目录发布至 GitHub Pages。
+## Run and edit
 
-- `index.html`：页面结构与作品手记
-- `style.css`：画面、模拟广告及响应式样式
-- `scene.js`：黑白空间、光线与透视动画绘制
-- `engine.js`：节点、广告及计时规则
-- `game.js`：页面交互、声音与绘制调度
-- `tests/engine.test.cjs`：游戏规则检查
-- `scripts/make-offline.cjs`：生成单文件离线版
+Plain HTML, CSS, and JavaScript. No third-party runtime, account, payment, or server-side tracking. Open `threshold-offline.html` for a self-contained offline copy. GitHub Pages serves the repository root from `main`.
 
-使用 Node.js 运行：
+- `index.html`: minimal game interface
+- `style.css`: responsive interface and simulated advertisements
+- `scene.js`: monochrome architecture, light, and perspective movement
+- `engine.js`: progression and timing rules
+- `game.js`: interactions, narrative cues, audio, and rendering schedule
+- `tests/engine.test.cjs`: rule checks
+- `scripts/make-offline.cjs`: single-file export
 
 ```sh
 npm test
 npm run offline
 ```
 
-修改拆分源码后重新生成离线文件，再提交到 `main`。无需 `npm install`。
+No installation is needed. Regenerate the offline file after source edits. When releasing a new version, update the asset query version in `index.html` to prevent mixed cached files.
 
-## 持续协作
+## Scope and verification
 
-跨设备开发时先拉取本仓库最新版本。多人修改建议使用独立分支和 Pull Request；视觉调整集中在 `style.css` 与 `scene.js`，规则调整集中在 `engine.js` 与 `game.js`。
+The existing three-node route and five simulated ads remain. A 12-second opening conflicts with a 30-second mandatory ad. The door closes; the ending reads only “You are still here.” with an “Again” button.
 
-保留一座大厅、三个节点、五种广告与最终 12 秒接收窗口 / 30 秒强制广告的冲突。后续重点是实际手机试玩、明确观察平台及课堂反馈。
+The renderer uses a maximum of approximately two million pixels and 30 frames per second, with reduced-motion support and automatic pause when the page is hidden. It loads no images, video, web fonts, or third-party code. Actual low-end mobile devices and Safari still need device testing.
 
-## 验证范围
-
-8 项规则测试通过。黑白空间已在原生 Canvas 环境检查桌面与窄屏画幅。画布上限约 200 万像素，最多 30fps，无新增图片、视频、字体或第三方运行时。真实手机 Safari 与低端设备性能仍需实机验证。
-
-画面由代码绘制；页面中的艺术家与作品是视觉参考，没有嵌入其作品图片。广告品牌及操作均为虚构。公开源码不等于授予开源许可证，本仓库目前未附加许可证。
+All architecture is drawn in code. The visual references include James Turrell, Boullée, Peter Gric, and Thomas Demand; no images of their work are embedded. Ad brands and actions are fictional. Public source does not itself grant a license; this repository currently has no license file.
