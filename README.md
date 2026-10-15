@@ -1,11 +1,11 @@
 # THRESHOLD
 
-**Skip Ad to Live · v0.4.0**  
+**Skip Ad to Live · v0.5.0**  
 HUA Chencheng × YANG Haowei · Re-Imagine Internet
 
 There is an opening. Move towards it. Each interruption promises to bring it closer.
 
-A small monochrome browser work with three movements, five simulated ad formats, and an unresolved ending. The game interface is in English; the advertisements remain in Chinese. There is no message to deliver, explanatory notes panel, score screen, or participation summary.
+A small monochrome browser work with three movements, five possible simulated ad formats, and an unresolved ending. The game interface is in English; the advertisements remain in Chinese. There is no message to deliver, explanatory notes panel, score screen, or participation summary.
 
 ## Run and edit
 
@@ -28,7 +28,7 @@ No installation is needed. Regenerate the offline file after source edits. When 
 
 ## Scope and verification
 
-The existing three-node route and five simulated ads remain. A 12-second opening conflicts with a 30-second mandatory ad. The door closes; the ending reads only “You are still here.” with an “Again” button.
+The three-node route and five simulated ad formats remain. Clicking Begin continues the same scene through a 1.8-second camera and light transition; the game clock starts after this transition. In the second ad, the large close icon enters a claim state, while the small corner close dismisses the ad immediately. The claim button opens the separate retention sequence. A 12-second opening conflicts with a 30-second mandatory ad. The door closes; the ending reads only “You are still here.” with an “Again” button.
 
 The renderer uses a maximum of approximately two million pixels and 30 frames per second, with reduced-motion support and automatic pause when the page is hidden. It loads no images, video, web fonts, or third-party code. Actual low-end mobile devices and Safari still need device testing.
 

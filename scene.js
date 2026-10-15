@@ -16,7 +16,7 @@
       ctx.strokeStyle = `rgba(255,255,255,${alpha})`; ctx.lineWidth = weight; ctx.stroke();
     }
     function draw(ctx, options) {
-      const { width: w, height: h, travel = 0, time = 0, ended = false, aperture = 0, closing = 0, screen = 'playing', reducedMotion = false, pointerX = 0 } = options;
+      const { width: w, height: h, travel = 0, time = 0, ended = false, aperture = 0, closing = 0, entrance = 1, screen = 'playing', reducedMotion = false, pointerX = 0 } = options;
       const key = `${w}:${h}`;
       if (key !== backdropKey) {
         backdropKey = key; backdrop = createCanvas(Math.ceil(w), Math.ceil(h));
@@ -26,9 +26,11 @@
         b.fillStyle = g; b.fillRect(0, 0, w, h);
       }
       ctx.drawImage(backdrop, 0, 0, w, h);
-      const intro = screen === 'title';
+      const entry = screen === 'title' ? 0 : clamp(entrance, 0, 1);
+      const reveal = entry * entry * (3 - 2 * entry);
+      const curtain = clamp((reveal - .18) / .82, 0, 1);
       const t = reducedMotion ? 0 : time * .001;
-      const camera = intro ? 0 : clamp(travel, 0, 3) * 2.25;
+      const camera = reveal * .75 + clamp(travel, 0, 3) * 2.25;
       const breath = reducedMotion ? 0 : Math.sin(t * .24) * .014;
       const cx = w * .5 + (reducedMotion ? 0 : pointerX * Math.min(w * .012, 12));
       const cy = h * (.48 + breath * .18);
@@ -36,13 +38,13 @@
       const p = (x, y, z) => ({ x: cx + x * focal / (z - camera), y: cy + y * focal / (z - camera) });
       const shut = ended ? (reducedMotion ? 1 : clamp(closing, 0, 1)) : 0;
       const light = 1 - shut * .83;
-      const architecture = intro ? .25 : 1;
+      const architecture = .25 + reveal * .75;
       ctx.save();
       // Dark architectural planes and a perspective reflection of the aperture.
       path(ctx, [p(-4, 2.8, 1 + camera), p(4, 2.8, 1 + camera), p(4, 2.8, 25), p(-4, 2.8, 25)], '#0c0c0c');
       path(ctx, [p(-4, -10, 1 + camera), p(-4, 2.8, 1 + camera), p(-4, 2.8, 25), p(-4, -10, 25)], '#080808');
       path(ctx, [p(4, -10, 1 + camera), p(4, 2.8, 1 + camera), p(4, 2.8, 25), p(4, -10, 25)], '#050505');
-      const spread = (intro ? .1 : .34 + travel * .045 + aperture * .38) * (1 - shut) ** 2;
+      const spread = (.1 + reveal * .24 + travel * .045 + aperture * .38) * (1 - shut) ** 2;
       const sill = p(0, 2.8, 24);
       const floorLight = ctx.createLinearGradient(0, sill.y, 0, h);
       floorLight.addColorStop(0, `rgba(255,255,255,${.19 * light})`);
@@ -63,7 +65,7 @@
         }
       }
       // Two overlapping curtains, with phase offsets. No textures or particle loop.
-      if (!intro) {
+      if (curtain > 0) {
         for (let side = -1; side <= 1; side += 2) {
           for (let layer = 0; layer < 2; layer++) {
             const z = 15.6 + layer * 2.1;
@@ -74,7 +76,7 @@
               const u = n / 39;
               const x = base + side * u * 2.05;
               const fold = Math.sin(u * Math.PI) * .34;
-              line(ctx, p(x, top + u * 1.4, z + fold), p(x + side * .16, 2.75, z + fold), (.09 + .09 * Math.sin(u * Math.PI)) * light, .6);
+              line(ctx, p(x, top + u * 1.4, z + fold), p(x + side * .16, 2.75, z + fold), (.09 + .09 * Math.sin(u * Math.PI)) * light * curtain, .6);
             }
           }
         }
@@ -86,12 +88,14 @@
       }
       const door = [p(-spread, -7.5, 24), p(spread, -7.5, 24), p(spread, 2.8, 24), p(-spread, 2.8, 24)];
       if (spread > .001) path(ctx, door, '#f7f7f7');
-      if (!ended && !intro) {
+      if (!ended && reveal > 0) {
+        ctx.save(); ctx.globalAlpha = reveal;
         const face = ctx.createLinearGradient(door[0].x, 0, door[1].x, 0);
         face.addColorStop(0, '#979797'); face.addColorStop(.4, '#f9f9f9'); face.addColorStop(1, '#ffffff');
         path(ctx, door, face);
         const edge = -spread + (Math.sin(t * .21) * .5 + .5) * spread * 1.4;
         line(ctx, p(edge, -7.5, 24), p(edge, 2.8, 24), .38, .8);
+        ctx.restore();
       }
       for (const x of [-3.2, -2, -.95, .95, 2, 3.2]) line(ctx, p(x, 2.8, 24), p(x, 2.8, camera + 1.2), .075 * architecture * light);
       path(ctx, [{ x: 0, y: 0 }, { x: w * .045, y: 0 }, { x: w * .045, y: h }, { x: 0, y: h }], '#030303');

@@ -54,7 +54,8 @@
       switch (state.ad) {
         case 'gift': if (action === 'close') completeNode(); break;
         case 'falseClose':
-          if (action === 'real-close') showAd('retention');
+          if (action === 'real-close') completeNode();
+          else if (action === 'claim') showAd('retention');
           else { state.adStep = 1; changed(); } break;
         case 'retention':
           if (action === 'keep') state.adStep = 0;

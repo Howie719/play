@@ -8,7 +8,8 @@
   let width = window.innerWidth, height = window.innerHeight, dpr = 1, state = engine.snapshot();
   let last = performance.now(), lastDraw = 0, visualTime = 0, travel = 0, pointerX = 0, adKey = '', currentPhase = '', status = '';
   let toastTimer, activeLayer = null, previousFocus = null, consentChecked = true;
-  let closing = 0, aperture = 0;
+  let closing = 0, aperture = 0, entrance = 1, entering = false;
+  const entryDuration = 1800;
   let audio, soundOn = false, droneGain, drone, filter;
   function format(ms) { const s = Math.max(0, Math.ceil(ms / 1000)); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; }
   function toast(message, language = 'en') {
@@ -58,17 +59,24 @@
   }
   function resumeGame() { hideLayers(); engine.pause(false); last = performance.now(); syncNow(); }
   function goHome() {
-    hideLayers(false); clearTimeout(toastTimer); $('toast').classList.remove('visible'); engine.reset(); travel = 0; closing = 0; aperture = 0; consentChecked = true; adKey = ''; currentPhase = ''; syncNow(); focusNext($('enter'));
+    hideLayers(false); clearTimeout(toastTimer); $('toast').classList.remove('visible'); engine.reset(); entering = false; entrance = 0; document.body.style.setProperty('--entry-progress', '1'); travel = 0; closing = 0; aperture = 0; consentChecked = true; adKey = ''; currentPhase = ''; syncNow(); focusNext($('enter'));
   }
   function start() {
-    hideLayers(false); clearTimeout(toastTimer); $('toast').classList.remove('visible'); engine.start(); consentChecked = true; travel = 0; closing = 0; aperture = 0; adKey = ''; currentPhase = ''; visualTime = 0;
-    last = performance.now(); syncNow(); tone(210, 1.7, .04); focusNext($('advance'));
+    if (entering) return;
+    const fromTitle = state.status === 'title';
+    hideLayers(false); clearTimeout(toastTimer); $('toast').classList.remove('visible'); engine.start();
+    consentChecked = true; travel = 0; closing = 0; aperture = 0; adKey = ''; currentPhase = '';
+    entrance = fromTitle && !motionQuery.matches ? 0 : 1; entering = entrance < 1;
+    document.body.style.setProperty('--entry-progress', String(entrance));
+    // Keep visualTime: the opening and its slow motion belong to the same space.
+    last = performance.now(); syncNow(); tone(210, 1.7, .04);
+    if (!entering) focusNext($('advance'));
   }
-  function advance() { if (engine.advance()) { tone(165, .7, .04); syncNow(); } }
+  function advance() { if (!entering && engine.advance()) { tone(165, .7, .04); syncNow(); } }
   const closeButton = action => `<button class="ad-close" data-action="${action}" aria-label="${action === 'fake-close' ? '广告内的叉号按钮' : '关闭此广告'}"><span aria-hidden="true">×</span></button>`;
   const templates = {
     gift: () => `<div class="ad ad-gift" role="region" aria-labelledby="ad-title" tabindex="-1">${closeButton('close')}<p class="ad-kind">门内生活 · 新客专享</p><div class="gift-badge" aria-hidden="true">仅限<br>此刻</div><h3 class="ad-title" id="ad-title">进门先领通行礼</h3><p class="ad-desc">恭喜你！一份心意已送达</p><div class="coupon"><span>你的专属通行好礼</span><strong>88</strong><i>点</i><small>距离更好的生活，只差一次点击</small></div><button class="ad-primary" data-action="claim">立即领取</button><p class="ad-fine">赞助内容 · 仅用于游戏内模拟</p></div>`,
-    falseClose: () => `<div class="ad ad-speed" role="region" aria-labelledby="ad-title" tabindex="-1">${closeButton('fake-close')}<div class="ad-topline"><span>门内加速服务</span><em>赞助</em></div><div class="speed-glyph" aria-hidden="true">≫</div><h3 id="ad-title">${state.adStep ? '已进入领取通道' : '距离抵达，只差一步'}</h3><p class="ad-desc">${state.adStep ? '你的点击已为你保留加速资格。' : '让等待更短，让抵达更近。'}</p><button class="ad-primary" data-action="claim">免费领取加速 →</button><button class="actual-close" data-action="real-close">暂不需要，返回原任务</button><p class="ad-fine">赞助内容 · 页面中的 × 将进入领取通道</p></div>`,
+    falseClose: () => `<div class="ad ad-speed" role="region" aria-labelledby="ad-title" tabindex="-1"><button class="ad-close ad-close-small" data-action="real-close" aria-label="关闭此广告"><span aria-hidden="true">×</span></button><button class="ad-close-fake" data-action="fake-close" aria-label="广告内的大号关闭按钮"><span aria-hidden="true">×</span><small>关闭</small></button><div class="ad-topline"><span>门内加速服务</span><em>赞助</em></div><div class="speed-glyph" aria-hidden="true">≫</div><h3 id="ad-title">${state.adStep ? '已进入领取通道' : '距离抵达，只差一步'}</h3><p class="ad-desc">${state.adStep ? '你的点击已为你保留加速资格。' : '让等待更短，让抵达更近。'}</p><button class="ad-primary" data-action="claim">免费领取加速 →</button><p class="ad-fine">赞助内容 · 仅用于游戏内模拟</p></div>`,
     retention: () => `<div class="ad ad-retention" role="region" aria-labelledby="ad-title" tabindex="-1"><p class="ad-topline"><span>通行权益提醒</span><em>赞助内容</em></p><div class="retention-icon" aria-hidden="true">!</div><h3 class="ad-title" id="ad-title">${state.adStep ? '最后确认一次' : '确认放弃通行加速？'}</h3><p class="ad-desc">${state.adStep ? '现在离开，你将继续独自等待。' : '你的专属资格，即将随这次关闭失效。'}</p><p class="retention-count">${state.adStep ? 'CONFIRMATION 02 / 02' : 'CONFIRMATION 01 / 02'}</p><button class="ad-primary" data-action="keep">保留我的权益</button><button class="actual-close" data-action="decline">${state.adStep ? '确认放弃，继续原任务' : '放弃权益'}</button></div>`,
     verification: () => `<div class="ad ad-verify" role="region" aria-labelledby="ad-title" tabindex="-1"><div class="ad-topline"><span>ARCHIVE / 07</span><em>赞助内容</em></div><h3 class="ad-title" id="ad-title">${state.adStep ? '持续通行服务' : '通行校验'}</h3><p class="ad-desc">${state.adStep ? '为下一次抵达，提前准备。' : '门已感知到你的到来。<br>请完成最后一步，继续通行。'}</p><div class="verify-code"><i aria-hidden="true">${state.adStep ? '∞' : 'Ⅲ'}</i><div>ACCESS PROTOCOL<br>${state.adStep ? 'CONTINUOUS SERVICE' : 'AWAITING VERIFICATION'}</div></div>${state.adStep ? `<label class="consent-row"><input id="consent-check" type="checkbox" ${consentChecked ? 'checked' : ''}><div>开通持续通行服务<span>这是游戏内的模拟选项</span></div></label><button class="ad-primary" data-action="consent">确认并继续</button>` : '<button class="ad-primary" data-action="verify">继续校验 →</button>'}<button class="actual-close" data-action="return-task">返回原任务</button></div>`,
     forced: () => `<div class="ad ad-forced" role="region" aria-labelledby="ad-title" tabindex="-1"><div class="forced-status"><div><p>必须完整观看</p><strong id="sponsor-seconds">30s</strong></div><div class="reception"><p>入口开放倒计时</p><strong id="receive-seconds">12s</strong></div></div><div class="sponsor-film"><small>MENNEI / SPONSORED FILM</small><div class="film-door" aria-hidden="true"></div><p id="ad-title">为你开启更远的门</p></div><div class="forced-playback"><span>完整观看后，即可进入</span><span id="playback-position">00:00 / 00:30</span></div><div class="ad-progress"><i id="ad-bar"></i></div><p class="forced-copy">你已到达。进入之前，请先看完这段赞助内容。</p><button class="blocked-close" data-action="blocked-close">播放结束后可关闭 ×</button></div>`
@@ -90,25 +98,30 @@
   function render() {
     if (status !== state.status) {
       status = state.status; document.body.dataset.screen = status;
-      $('intro').hidden = status !== 'title'; $('masthead').hidden = status !== 'playing';
+      $('masthead').hidden = status !== 'playing';
       $('journey').hidden = status !== 'playing'; $('ending').hidden = status !== 'ended';
       if (status === 'ended') {
         clearTimeout(toastTimer); $('toast').classList.remove('visible');
         tone(82, 2.6, .04); focusNext($('replay')); updateDrone();
       }
     }
+    $('intro').hidden = status !== 'title' && !entering;
+    $('intro').inert = entering;
+    $('enter').disabled = entering;
+    document.body.dataset.entering = String(entering);
     const remaining = format(state.journeyMs);
     if ($('journey-time').textContent !== remaining) $('journey-time').textContent = remaining;
     document.body.dataset.paused = String(!!activeLayer || state.paused);
     document.body.dataset.ad = String(!!state.ad);
     $('main').inert = !!activeLayer || !!state.ad;
-    $('masthead').inert = !!activeLayer;
+    $('masthead').inert = !!activeLayer || entering;
+    $('journey').inert = entering;
     $('ad-host').inert = !!activeLayer;
     $('narrative').hidden = state.phase !== 'ready';
-    const phase = state.phase + ':' + state.nodes;
+    const phase = state.phase + ':' + state.nodes + ':' + entering;
     if (phase !== currentPhase) {
       currentPhase = phase;
-      $('advance').disabled = state.phase !== 'ready';
+      $('advance').disabled = state.phase !== 'ready' || entering;
       $('advance-label').textContent = ['Approach', 'Continue', 'Enter'][Math.min(2, state.nodes)];
       $('narrative-line').textContent = ['There is an opening.', 'A little further.', 'Just one more step.'][Math.min(2, state.nodes)];
       $('phase-copy').textContent = state.phase === 'submitting' ? 'The opening is here.' : '';
@@ -175,7 +188,15 @@
     const dt = Math.max(0, now - last); last = now;
     if (!document.hidden) {
       if (!activeLayer && !state.paused) visualTime += Math.min(dt, 120);
-      if (state.status === 'playing') state = engine.tick(dt);
+      if (entering) {
+        if (!activeLayer && !state.paused) {
+          entrance = motionQuery.matches ? 1 : Math.min(1, entrance + Math.min(dt, 120) / entryDuration);
+          document.body.style.setProperty('--entry-progress', entrance.toFixed(4));
+          if (entrance === 1) {
+            entering = false; syncNow(); focusNext($('advance'));
+          }
+        }
+      } else if (state.status === 'playing') state = engine.tick(dt);
       let target = state.nodes;
       if (state.phase === 'walking' && !motionQuery.matches) target += 1 - state.phaseMs / state.config.walkMs;
       else if (state.phase === 'ad') target += 1;
@@ -189,7 +210,7 @@
         }
       }
       if (now - lastDraw >= (motionQuery.matches ? 180 : 33) || now === 0) {
-        renderer.draw(ctx, { width, height, time: visualTime, travel, screen: state.status, ended: state.status === 'ended', aperture, closing, reducedMotion: motionQuery.matches, pointerX });
+        renderer.draw(ctx, { width, height, time: visualTime, travel, screen: state.status, ended: state.status === 'ended', aperture, closing, entrance, reducedMotion: motionQuery.matches, pointerX });
         lastDraw = now; render();
       }
     }

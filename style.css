@@ -23,6 +23,9 @@ p, h1, h2, h3 { margin: 0; }
 .intro .enter-button { min-width: 90px; border-color: transparent; }
 .intro .enter-button:hover, .intro .enter-button:focus-visible { border-color: #999; }
 .journey { position: fixed; inset: 0; pointer-events: none; }
+body[data-entering="true"] .intro { opacity: clamp(0, calc(1 - var(--entry-progress) * 5), 1); pointer-events: none; }
+body[data-entering="true"] .journey { opacity: clamp(0, calc((var(--entry-progress) - .5) * 2), 1); transform: translateY(calc((1 - var(--entry-progress)) * 12px)); }
+body[data-entering="true"] .masthead { opacity: clamp(0, calc((var(--entry-progress) - .7) / .3), 1); }
 .task-heading { position: absolute; bottom: calc(6.5vh + 120px); left: 0; right: 0; text-align: center; }
 .message { font-size: 13px; font-weight: 400; letter-spacing: .06em; color: #bdbdbd; }
 .next-step { position: absolute; bottom: max(6.5vh, 28px); left: 50%; transform: translateX(-50%); width: min(80vw, 360px); text-align: center; }
@@ -65,6 +68,12 @@ body[data-ad="true"] .journey { opacity: .18; }
 .ad-speed { background: #101010; color: white; border-color: #777; }
 .ad-speed .ad-close { color: white; }
 .ad-speed .ad-topline { padding-right: 25px; }
+.ad-speed .ad-close-small { width: 30px; height: 30px; top: 6px; right: 6px; font-size: 14px; color: #b7b7b7; border: 1px solid #565656; border-radius: 50%; }
+.ad-close-small:hover { background: #303030; }
+.ad-close-fake { position: absolute; top: 78px; right: 30px; width: 82px; height: 82px; border: 2px solid white; border-radius: 50%; background: #f3f3f3; color: #101010; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; }
+.ad-close-fake > span { font: 52px/.7 Arial, sans-serif; }
+.ad-close-fake > small { font: 10px/1.4 "PingFang SC", "Microsoft YaHei", sans-serif; margin-top: 5px; }
+.ad-close-fake:hover { background: #d8d8d8; }
 .speed-glyph { font: 140px/.9 Georgia, serif; letter-spacing: -.12em; margin: 20px 0 27px; overflow: hidden; }
 .ad-speed h3 { font-size: 25px; font-weight: 400; }
 .ad-speed .ad-primary, .ad-verify .ad-primary { background: white; color: black; border-color: white; }
@@ -127,6 +136,8 @@ body[data-paused="true"] *, body[data-paused="true"] *::before, body[data-paused
   .coupon strong { font-size: 70px; }
   .ad-primary { margin-top: 18px; }
   .speed-glyph { font-size: 95px; margin: 12px 0 20px; }
+  .ad-close-fake { top: 58px; right: 26px; width: 70px; height: 70px; }
+  .ad-close-fake > span { font-size: 44px; }
   .sponsor-film { height: 150px; }
   .film-door { top: 32px; height: 74px; width: 34px; }
 }

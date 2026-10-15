@@ -5,7 +5,7 @@ function arrive(e) { assert.equal(e.advance(), true); assert.equal(e.advance(), 
 function settle(e) { e.tick(SETTINGS.settleMs); }
 function route(e) {
   e.start(); arrive(e); e.interact('close'); settle(e);
-  arrive(e); e.interact('fake-close'); e.interact('real-close'); e.interact('decline'); e.interact('decline'); settle(e);
+  arrive(e); e.interact('fake-close'); e.interact('claim'); e.interact('decline'); e.interact('decline'); settle(e);
   arrive(e); e.interact('verify'); e.interact('return-task'); settle(e); e.tick(SETTINGS.submitMs);
 }
 test('A title screen and repeated clicks cannot advance the route', () => {
@@ -13,13 +13,23 @@ test('A title screen and repeated clicks cannot advance the route', () => {
   e.start(); arrive(e); assert.equal(e.snapshot().ad, 'gift'); assert.equal(e.advance(), false);
   e.interact('claim'); assert.equal(e.snapshot().nodes, 0); e.interact('close'); assert.equal(e.snapshot().nodes, 1);
 });
-test('The false close and two refusals are actual separate steps', () => {
+test('The large false close keeps the ad open; claiming leads to two refusals', () => {
   const e = createEngine(); e.start(); arrive(e); e.interact('close'); settle(e); arrive(e);
   e.interact('fake-close'); assert.equal(e.snapshot().ad, 'falseClose'); assert.equal(e.snapshot().nodes, 1);
-  e.interact('real-close'); assert.equal(e.snapshot().ad, 'retention');
+  e.interact('claim'); assert.equal(e.snapshot().ad, 'retention');
   e.interact('decline'); assert.equal(e.snapshot().nodes, 1);
   e.interact('keep'); assert.equal(e.snapshot().adStep, 0);
   e.interact('decline'); e.interact('decline'); assert.equal(e.snapshot().nodes, 2);
+});
+test('The small true close dismisses the ad directly, before or after the decoy', () => {
+  for (const clickDecoy of [false, true]) {
+    const e = createEngine(); e.start(); arrive(e); e.interact('close'); settle(e); arrive(e);
+    if (clickDecoy) e.interact('fake-close');
+    assert.equal(e.interact('real-close'), true);
+    assert.equal(e.snapshot().ad, null); assert.equal(e.snapshot().nodes, 2);
+    assert.equal(e.snapshot().seen.includes('retention'), false);
+    settle(e); assert.equal(e.snapshot().phase, 'ready'); assert.equal(e.advance(), true);
+  }
 });
 test('Verification does not subscribe or bypass the original task', () => {
   const e = createEngine(); route(e);

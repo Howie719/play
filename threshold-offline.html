@@ -32,6 +32,9 @@ p, h1, h2, h3 { margin: 0; }
 .intro .enter-button { min-width: 90px; border-color: transparent; }
 .intro .enter-button:hover, .intro .enter-button:focus-visible { border-color: #999; }
 .journey { position: fixed; inset: 0; pointer-events: none; }
+body[data-entering="true"] .intro { opacity: clamp(0, calc(1 - var(--entry-progress) * 5), 1); pointer-events: none; }
+body[data-entering="true"] .journey { opacity: clamp(0, calc((var(--entry-progress) - .5) * 2), 1); transform: translateY(calc((1 - var(--entry-progress)) * 12px)); }
+body[data-entering="true"] .masthead { opacity: clamp(0, calc((var(--entry-progress) - .7) / .3), 1); }
 .task-heading { position: absolute; bottom: calc(6.5vh + 120px); left: 0; right: 0; text-align: center; }
 .message { font-size: 13px; font-weight: 400; letter-spacing: .06em; color: #bdbdbd; }
 .next-step { position: absolute; bottom: max(6.5vh, 28px); left: 50%; transform: translateX(-50%); width: min(80vw, 360px); text-align: center; }
@@ -74,6 +77,12 @@ body[data-ad="true"] .journey { opacity: .18; }
 .ad-speed { background: #101010; color: white; border-color: #777; }
 .ad-speed .ad-close { color: white; }
 .ad-speed .ad-topline { padding-right: 25px; }
+.ad-speed .ad-close-small { width: 30px; height: 30px; top: 6px; right: 6px; font-size: 14px; color: #b7b7b7; border: 1px solid #565656; border-radius: 50%; }
+.ad-close-small:hover { background: #303030; }
+.ad-close-fake { position: absolute; top: 78px; right: 30px; width: 82px; height: 82px; border: 2px solid white; border-radius: 50%; background: #f3f3f3; color: #101010; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; }
+.ad-close-fake > span { font: 52px/.7 Arial, sans-serif; }
+.ad-close-fake > small { font: 10px/1.4 "PingFang SC", "Microsoft YaHei", sans-serif; margin-top: 5px; }
+.ad-close-fake:hover { background: #d8d8d8; }
 .speed-glyph { font: 140px/.9 Georgia, serif; letter-spacing: -.12em; margin: 20px 0 27px; overflow: hidden; }
 .ad-speed h3 { font-size: 25px; font-weight: 400; }
 .ad-speed .ad-primary, .ad-verify .ad-primary { background: white; color: black; border-color: white; }
@@ -136,6 +145,8 @@ body[data-paused="true"] *, body[data-paused="true"] *::before, body[data-paused
   .coupon strong { font-size: 70px; }
   .ad-primary { margin-top: 18px; }
   .speed-glyph { font-size: 95px; margin: 12px 0 20px; }
+  .ad-close-fake { top: 58px; right: 26px; width: 70px; height: 70px; }
+  .ad-close-fake > span { font-size: 44px; }
   .sponsor-film { height: 150px; }
   .film-door { top: 32px; height: 74px; width: 34px; }
 }
@@ -240,7 +251,8 @@ body[data-paused="true"] *, body[data-paused="true"] *::before, body[data-paused
       switch (state.ad) {
         case 'gift': if (action === 'close') completeNode(); break;
         case 'falseClose':
-          if (action === 'real-close') showAd('retention');
+          if (action === 'real-close') completeNode();
+          else if (action === 'claim') showAd('retention');
           else { state.adStep = 1; changed(); } break;
         case 'retention':
           if (action === 'keep') state.adStep = 0;
@@ -310,7 +322,7 @@ body[data-paused="true"] *, body[data-paused="true"] *::before, body[data-paused
       ctx.strokeStyle = `rgba(255,255,255,${alpha})`; ctx.lineWidth = weight; ctx.stroke();
     }
     function draw(ctx, options) {
-      const { width: w, height: h, travel = 0, time = 0, ended = false, aperture = 0, closing = 0, screen = 'playing', reducedMotion = false, pointerX = 0 } = options;
+      const { width: w, height: h, travel = 0, time = 0, ended = false, aperture = 0, closing = 0, entrance = 1, screen = 'playing', reducedMotion = false, pointerX = 0 } = options;
       const key = `${w}:${h}`;
       if (key !== backdropKey) {
         backdropKey = key; backdrop = createCanvas(Math.ceil(w), Math.ceil(h));
@@ -320,9 +332,11 @@ body[data-paused="true"] *, body[data-paused="true"] *::before, body[data-paused
         b.fillStyle = g; b.fillRect(0, 0, w, h);
       }
       ctx.drawImage(backdrop, 0, 0, w, h);
-      const intro = screen === 'title';
+      const entry = screen === 'title' ? 0 : clamp(entrance, 0, 1);
+      const reveal = entry * entry * (3 - 2 * entry);
+      const curtain = clamp((reveal - .18) / .82, 0, 1);
       const t = reducedMotion ? 0 : time * .001;
-      const camera = intro ? 0 : clamp(travel, 0, 3) * 2.25;
+      const camera = reveal * .75 + clamp(travel, 0, 3) * 2.25;
       const breath = reducedMotion ? 0 : Math.sin(t * .24) * .014;
       const cx = w * .5 + (reducedMotion ? 0 : pointerX * Math.min(w * .012, 12));
       const cy = h * (.48 + breath * .18);
@@ -330,13 +344,13 @@ body[data-paused="true"] *, body[data-paused="true"] *::before, body[data-paused
       const p = (x, y, z) => ({ x: cx + x * focal / (z - camera), y: cy + y * focal / (z - camera) });
       const shut = ended ? (reducedMotion ? 1 : clamp(closing, 0, 1)) : 0;
       const light = 1 - shut * .83;
-      const architecture = intro ? .25 : 1;
+      const architecture = .25 + reveal * .75;
       ctx.save();
       // Dark architectural planes and a perspective reflection of the aperture.
       path(ctx, [p(-4, 2.8, 1 + camera), p(4, 2.8, 1 + camera), p(4, 2.8, 25), p(-4, 2.8, 25)], '#0c0c0c');
       path(ctx, [p(-4, -10, 1 + camera), p(-4, 2.8, 1 + camera), p(-4, 2.8, 25), p(-4, -10, 25)], '#080808');
       path(ctx, [p(4, -10, 1 + camera), p(4, 2.8, 1 + camera), p(4, 2.8, 25), p(4, -10, 25)], '#050505');
-      const spread = (intro ? .1 : .34 + travel * .045 + aperture * .38) * (1 - shut) ** 2;
+      const spread = (.1 + reveal * .24 + travel * .045 + aperture * .38) * (1 - shut) ** 2;
       const sill = p(0, 2.8, 24);
       const floorLight = ctx.createLinearGradient(0, sill.y, 0, h);
       floorLight.addColorStop(0, `rgba(255,255,255,${.19 * light})`);
@@ -357,7 +371,7 @@ body[data-paused="true"] *, body[data-paused="true"] *::before, body[data-paused
         }
       }
       // Two overlapping curtains, with phase offsets. No textures or particle loop.
-      if (!intro) {
+      if (curtain > 0) {
         for (let side = -1; side <= 1; side += 2) {
           for (let layer = 0; layer < 2; layer++) {
             const z = 15.6 + layer * 2.1;
@@ -368,7 +382,7 @@ body[data-paused="true"] *, body[data-paused="true"] *::before, body[data-paused
               const u = n / 39;
               const x = base + side * u * 2.05;
               const fold = Math.sin(u * Math.PI) * .34;
-              line(ctx, p(x, top + u * 1.4, z + fold), p(x + side * .16, 2.75, z + fold), (.09 + .09 * Math.sin(u * Math.PI)) * light, .6);
+              line(ctx, p(x, top + u * 1.4, z + fold), p(x + side * .16, 2.75, z + fold), (.09 + .09 * Math.sin(u * Math.PI)) * light * curtain, .6);
             }
           }
         }
@@ -380,12 +394,14 @@ body[data-paused="true"] *, body[data-paused="true"] *::before, body[data-paused
       }
       const door = [p(-spread, -7.5, 24), p(spread, -7.5, 24), p(spread, 2.8, 24), p(-spread, 2.8, 24)];
       if (spread > .001) path(ctx, door, '#f7f7f7');
-      if (!ended && !intro) {
+      if (!ended && reveal > 0) {
+        ctx.save(); ctx.globalAlpha = reveal;
         const face = ctx.createLinearGradient(door[0].x, 0, door[1].x, 0);
         face.addColorStop(0, '#979797'); face.addColorStop(.4, '#f9f9f9'); face.addColorStop(1, '#ffffff');
         path(ctx, door, face);
         const edge = -spread + (Math.sin(t * .21) * .5 + .5) * spread * 1.4;
         line(ctx, p(edge, -7.5, 24), p(edge, 2.8, 24), .38, .8);
+        ctx.restore();
       }
       for (const x of [-3.2, -2, -.95, .95, 2, 3.2]) line(ctx, p(x, 2.8, 24), p(x, 2.8, camera + 1.2), .075 * architecture * light);
       path(ctx, [{ x: 0, y: 0 }, { x: w * .045, y: 0 }, { x: w * .045, y: h }, { x: 0, y: h }], '#030303');
@@ -409,7 +425,8 @@ body[data-paused="true"] *, body[data-paused="true"] *::before, body[data-paused
   let width = window.innerWidth, height = window.innerHeight, dpr = 1, state = engine.snapshot();
   let last = performance.now(), lastDraw = 0, visualTime = 0, travel = 0, pointerX = 0, adKey = '', currentPhase = '', status = '';
   let toastTimer, activeLayer = null, previousFocus = null, consentChecked = true;
-  let closing = 0, aperture = 0;
+  let closing = 0, aperture = 0, entrance = 1, entering = false;
+  const entryDuration = 1800;
   let audio, soundOn = false, droneGain, drone, filter;
   function format(ms) { const s = Math.max(0, Math.ceil(ms / 1000)); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; }
   function toast(message, language = 'en') {
@@ -459,17 +476,24 @@ body[data-paused="true"] *, body[data-paused="true"] *::before, body[data-paused
   }
   function resumeGame() { hideLayers(); engine.pause(false); last = performance.now(); syncNow(); }
   function goHome() {
-    hideLayers(false); clearTimeout(toastTimer); $('toast').classList.remove('visible'); engine.reset(); travel = 0; closing = 0; aperture = 0; consentChecked = true; adKey = ''; currentPhase = ''; syncNow(); focusNext($('enter'));
+    hideLayers(false); clearTimeout(toastTimer); $('toast').classList.remove('visible'); engine.reset(); entering = false; entrance = 0; document.body.style.setProperty('--entry-progress', '1'); travel = 0; closing = 0; aperture = 0; consentChecked = true; adKey = ''; currentPhase = ''; syncNow(); focusNext($('enter'));
   }
   function start() {
-    hideLayers(false); clearTimeout(toastTimer); $('toast').classList.remove('visible'); engine.start(); consentChecked = true; travel = 0; closing = 0; aperture = 0; adKey = ''; currentPhase = ''; visualTime = 0;
-    last = performance.now(); syncNow(); tone(210, 1.7, .04); focusNext($('advance'));
+    if (entering) return;
+    const fromTitle = state.status === 'title';
+    hideLayers(false); clearTimeout(toastTimer); $('toast').classList.remove('visible'); engine.start();
+    consentChecked = true; travel = 0; closing = 0; aperture = 0; adKey = ''; currentPhase = '';
+    entrance = fromTitle && !motionQuery.matches ? 0 : 1; entering = entrance < 1;
+    document.body.style.setProperty('--entry-progress', String(entrance));
+    // Keep visualTime: the opening and its slow motion belong to the same space.
+    last = performance.now(); syncNow(); tone(210, 1.7, .04);
+    if (!entering) focusNext($('advance'));
   }
-  function advance() { if (engine.advance()) { tone(165, .7, .04); syncNow(); } }
+  function advance() { if (!entering && engine.advance()) { tone(165, .7, .04); syncNow(); } }
   const closeButton = action => `<button class="ad-close" data-action="${action}" aria-label="${action === 'fake-close' ? '广告内的叉号按钮' : '关闭此广告'}"><span aria-hidden="true">×</span></button>`;
   const templates = {
     gift: () => `<div class="ad ad-gift" role="region" aria-labelledby="ad-title" tabindex="-1">${closeButton('close')}<p class="ad-kind">门内生活 · 新客专享</p><div class="gift-badge" aria-hidden="true">仅限<br>此刻</div><h3 class="ad-title" id="ad-title">进门先领通行礼</h3><p class="ad-desc">恭喜你！一份心意已送达</p><div class="coupon"><span>你的专属通行好礼</span><strong>88</strong><i>点</i><small>距离更好的生活，只差一次点击</small></div><button class="ad-primary" data-action="claim">立即领取</button><p class="ad-fine">赞助内容 · 仅用于游戏内模拟</p></div>`,
-    falseClose: () => `<div class="ad ad-speed" role="region" aria-labelledby="ad-title" tabindex="-1">${closeButton('fake-close')}<div class="ad-topline"><span>门内加速服务</span><em>赞助</em></div><div class="speed-glyph" aria-hidden="true">≫</div><h3 id="ad-title">${state.adStep ? '已进入领取通道' : '距离抵达，只差一步'}</h3><p class="ad-desc">${state.adStep ? '你的点击已为你保留加速资格。' : '让等待更短，让抵达更近。'}</p><button class="ad-primary" data-action="claim">免费领取加速 →</button><button class="actual-close" data-action="real-close">暂不需要，返回原任务</button><p class="ad-fine">赞助内容 · 页面中的 × 将进入领取通道</p></div>`,
+    falseClose: () => `<div class="ad ad-speed" role="region" aria-labelledby="ad-title" tabindex="-1"><button class="ad-close ad-close-small" data-action="real-close" aria-label="关闭此广告"><span aria-hidden="true">×</span></button><button class="ad-close-fake" data-action="fake-close" aria-label="广告内的大号关闭按钮"><span aria-hidden="true">×</span><small>关闭</small></button><div class="ad-topline"><span>门内加速服务</span><em>赞助</em></div><div class="speed-glyph" aria-hidden="true">≫</div><h3 id="ad-title">${state.adStep ? '已进入领取通道' : '距离抵达，只差一步'}</h3><p class="ad-desc">${state.adStep ? '你的点击已为你保留加速资格。' : '让等待更短，让抵达更近。'}</p><button class="ad-primary" data-action="claim">免费领取加速 →</button><p class="ad-fine">赞助内容 · 仅用于游戏内模拟</p></div>`,
     retention: () => `<div class="ad ad-retention" role="region" aria-labelledby="ad-title" tabindex="-1"><p class="ad-topline"><span>通行权益提醒</span><em>赞助内容</em></p><div class="retention-icon" aria-hidden="true">!</div><h3 class="ad-title" id="ad-title">${state.adStep ? '最后确认一次' : '确认放弃通行加速？'}</h3><p class="ad-desc">${state.adStep ? '现在离开，你将继续独自等待。' : '你的专属资格，即将随这次关闭失效。'}</p><p class="retention-count">${state.adStep ? 'CONFIRMATION 02 / 02' : 'CONFIRMATION 01 / 02'}</p><button class="ad-primary" data-action="keep">保留我的权益</button><button class="actual-close" data-action="decline">${state.adStep ? '确认放弃，继续原任务' : '放弃权益'}</button></div>`,
     verification: () => `<div class="ad ad-verify" role="region" aria-labelledby="ad-title" tabindex="-1"><div class="ad-topline"><span>ARCHIVE / 07</span><em>赞助内容</em></div><h3 class="ad-title" id="ad-title">${state.adStep ? '持续通行服务' : '通行校验'}</h3><p class="ad-desc">${state.adStep ? '为下一次抵达，提前准备。' : '门已感知到你的到来。<br>请完成最后一步，继续通行。'}</p><div class="verify-code"><i aria-hidden="true">${state.adStep ? '∞' : 'Ⅲ'}</i><div>ACCESS PROTOCOL<br>${state.adStep ? 'CONTINUOUS SERVICE' : 'AWAITING VERIFICATION'}</div></div>${state.adStep ? `<label class="consent-row"><input id="consent-check" type="checkbox" ${consentChecked ? 'checked' : ''}><div>开通持续通行服务<span>这是游戏内的模拟选项</span></div></label><button class="ad-primary" data-action="consent">确认并继续</button>` : '<button class="ad-primary" data-action="verify">继续校验 →</button>'}<button class="actual-close" data-action="return-task">返回原任务</button></div>`,
     forced: () => `<div class="ad ad-forced" role="region" aria-labelledby="ad-title" tabindex="-1"><div class="forced-status"><div><p>必须完整观看</p><strong id="sponsor-seconds">30s</strong></div><div class="reception"><p>入口开放倒计时</p><strong id="receive-seconds">12s</strong></div></div><div class="sponsor-film"><small>MENNEI / SPONSORED FILM</small><div class="film-door" aria-hidden="true"></div><p id="ad-title">为你开启更远的门</p></div><div class="forced-playback"><span>完整观看后，即可进入</span><span id="playback-position">00:00 / 00:30</span></div><div class="ad-progress"><i id="ad-bar"></i></div><p class="forced-copy">你已到达。进入之前，请先看完这段赞助内容。</p><button class="blocked-close" data-action="blocked-close">播放结束后可关闭 ×</button></div>`
@@ -491,25 +515,30 @@ body[data-paused="true"] *, body[data-paused="true"] *::before, body[data-paused
   function render() {
     if (status !== state.status) {
       status = state.status; document.body.dataset.screen = status;
-      $('intro').hidden = status !== 'title'; $('masthead').hidden = status !== 'playing';
+      $('masthead').hidden = status !== 'playing';
       $('journey').hidden = status !== 'playing'; $('ending').hidden = status !== 'ended';
       if (status === 'ended') {
         clearTimeout(toastTimer); $('toast').classList.remove('visible');
         tone(82, 2.6, .04); focusNext($('replay')); updateDrone();
       }
     }
+    $('intro').hidden = status !== 'title' && !entering;
+    $('intro').inert = entering;
+    $('enter').disabled = entering;
+    document.body.dataset.entering = String(entering);
     const remaining = format(state.journeyMs);
     if ($('journey-time').textContent !== remaining) $('journey-time').textContent = remaining;
     document.body.dataset.paused = String(!!activeLayer || state.paused);
     document.body.dataset.ad = String(!!state.ad);
     $('main').inert = !!activeLayer || !!state.ad;
-    $('masthead').inert = !!activeLayer;
+    $('masthead').inert = !!activeLayer || entering;
+    $('journey').inert = entering;
     $('ad-host').inert = !!activeLayer;
     $('narrative').hidden = state.phase !== 'ready';
-    const phase = state.phase + ':' + state.nodes;
+    const phase = state.phase + ':' + state.nodes + ':' + entering;
     if (phase !== currentPhase) {
       currentPhase = phase;
-      $('advance').disabled = state.phase !== 'ready';
+      $('advance').disabled = state.phase !== 'ready' || entering;
       $('advance-label').textContent = ['Approach', 'Continue', 'Enter'][Math.min(2, state.nodes)];
       $('narrative-line').textContent = ['There is an opening.', 'A little further.', 'Just one more step.'][Math.min(2, state.nodes)];
       $('phase-copy').textContent = state.phase === 'submitting' ? 'The opening is here.' : '';
@@ -576,7 +605,15 @@ body[data-paused="true"] *, body[data-paused="true"] *::before, body[data-paused
     const dt = Math.max(0, now - last); last = now;
     if (!document.hidden) {
       if (!activeLayer && !state.paused) visualTime += Math.min(dt, 120);
-      if (state.status === 'playing') state = engine.tick(dt);
+      if (entering) {
+        if (!activeLayer && !state.paused) {
+          entrance = motionQuery.matches ? 1 : Math.min(1, entrance + Math.min(dt, 120) / entryDuration);
+          document.body.style.setProperty('--entry-progress', entrance.toFixed(4));
+          if (entrance === 1) {
+            entering = false; syncNow(); focusNext($('advance'));
+          }
+        }
+      } else if (state.status === 'playing') state = engine.tick(dt);
       let target = state.nodes;
       if (state.phase === 'walking' && !motionQuery.matches) target += 1 - state.phaseMs / state.config.walkMs;
       else if (state.phase === 'ad') target += 1;
@@ -590,7 +627,7 @@ body[data-paused="true"] *, body[data-paused="true"] *::before, body[data-paused
         }
       }
       if (now - lastDraw >= (motionQuery.matches ? 180 : 33) || now === 0) {
-        renderer.draw(ctx, { width, height, time: visualTime, travel, screen: state.status, ended: state.status === 'ended', aperture, closing, reducedMotion: motionQuery.matches, pointerX });
+        renderer.draw(ctx, { width, height, time: visualTime, travel, screen: state.status, ended: state.status === 'ended', aperture, closing, entrance, reducedMotion: motionQuery.matches, pointerX });
         lastDraw = now; render();
       }
     }
