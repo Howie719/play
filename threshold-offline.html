@@ -611,7 +611,7 @@ body[data-paused="true"] *, body[data-paused="true"] *::before, body[data-paused
       if (!activeLayer && !state.paused) visualTime += Math.min(dt, 120);
       if (entering) {
         if (!activeLayer && !state.paused) {
-          entrance = motionQuery.matches ? 1 : Math.min(1, entrance + Math.min(dt, 120) / entryDuration);
+          entrance = motionQuery.matches ? 1 : Math.min(1, entrance + dt / entryDuration);
           document.body.style.setProperty('--entry-progress', entrance.toFixed(4));
           if (entrance === 1) {
             entering = false; syncNow(); focusNext($('advance'));
