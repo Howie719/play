@@ -1,6 +1,6 @@
 # THRESHOLD
 
-**Skip Ad to Live · v0.6.0**  
+**Skip Ad to Live · v0.6.1**  
 HUA Chencheng × YANG Haowei · Re-Imagine Internet
 
 There is an opening. Move towards it. Each interruption promises to bring it closer.
@@ -28,7 +28,7 @@ No installation is needed. Regenerate the offline file after source edits. When 
 
 ## Scope and verification
 
-The three-node route and five simulated ad formats remain. Clicking Begin continues the same scene through a 1.8-second camera and light transition; the game clock starts after this transition. In the second ad, the large close icon enters a claim state, while the small corner close dismisses the ad immediately. The claim button opens the separate retention sequence. A 12-second opening conflicts with a 30-second mandatory ad. The door closes; the ending reads only “You are still here.” with an “Again” button.
+The three-node route and five simulated ad formats remain. Clicking Begin continues the same scene through a 1.8-second camera and light transition; the game clock starts after this transition. Gift and acceleration claims each display a receipt with a continue button. In the second ad, the large false close opens the retention sequence, while the small corner close dismisses the ad immediately. Keeping the benefit returns a claimed receipt; declining twice returns to the game. Verification confirmation records the checkbox choice and displays the corresponding result. These are simulated choices only. A 12-second opening conflicts with a 30-second mandatory ad. The door closes; the ending reads only “You are still here.” with an “Again” button.
 
 The renderer uses a maximum of approximately two million pixels and 30 frames per second, with reduced-motion support and automatic pause when the page is hidden. It loads no images, video, web fonts, or third-party code. Actual low-end mobile devices and Safari still need device testing.
 

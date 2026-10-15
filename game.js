@@ -7,7 +7,7 @@
   const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
   let width = window.innerWidth, height = window.innerHeight, dpr = 1, state = engine.snapshot();
   let last = performance.now(), lastDraw = 0, visualTime = 0, travel = 0, pointerX = 0, adKey = '', currentPhase = '', status = '';
-  let toastTimer, activeLayer = null, previousFocus = null, consentChecked = true;
+  let toastTimer, activeLayer = null, previousFocus = null;
   let closing = 0, aperture = 0, entrance = 1, entering = false;
   const entryDuration = 1800;
   let audio, soundOn = false, droneGain, drone, filter;
@@ -63,13 +63,13 @@
   }
   function resumeGame() { hideLayers(); engine.pause(false); last = performance.now(); syncNow(); }
   function goHome() {
-    hideLayers(false); clearToast(); engine.reset(); entering = false; entrance = 0; document.body.style.setProperty('--entry-progress', '1'); travel = 0; closing = 0; aperture = 0; consentChecked = true; adKey = ''; currentPhase = ''; syncNow(); focusNext($('enter'));
+    hideLayers(false); clearToast(); engine.reset(); entering = false; entrance = 0; document.body.style.setProperty('--entry-progress', '1'); travel = 0; closing = 0; aperture = 0; adKey = ''; currentPhase = ''; syncNow(); focusNext($('enter'));
   }
   function start() {
     if (entering) return;
     const fromTitle = state.status === 'title';
     hideLayers(false); clearToast(); engine.start();
-    consentChecked = true; travel = 0; closing = 0; aperture = 0; adKey = ''; currentPhase = '';
+    travel = 0; closing = 0; aperture = 0; adKey = ''; currentPhase = '';
     entrance = fromTitle && !motionQuery.matches ? 0 : 1; entering = entrance < 1;
     document.body.style.setProperty('--entry-progress', String(entrance));
     // Keep visualTime: the opening and its slow motion belong to the same space.
@@ -79,16 +79,22 @@
   function advance() { if (!entering && engine.advance()) { tone(165, .7, .04); syncNow(); } }
   const closeButton = action => `<button class="ad-close" data-action="${action}" aria-label="${action === 'fake-close' ? '广告内的叉号按钮' : '关闭此广告'}"><span aria-hidden="true">×</span></button>`;
   const templates = {
-    gift: () => `<div class="ad ad-gift" role="region" aria-labelledby="ad-title" tabindex="-1">${closeButton('close')}<p class="ad-kind">门内生活 · 新客专享</p><div class="gift-badge" aria-hidden="true">仅限<br>此刻</div><h3 class="ad-title" id="ad-title">进门先领通行礼</h3><p class="ad-desc">恭喜你！一份心意已送达</p><div class="coupon"><span>你的专属通行好礼</span><strong>88</strong><i>点</i><small>距离更好的生活，只差一次点击</small></div><button class="ad-primary" data-action="claim">立即领取</button><p class="ad-fine">赞助内容 · 仅用于游戏内模拟</p></div>`,
-    falseClose: () => `<div class="ad ad-speed" role="region" aria-labelledby="ad-title" tabindex="-1"><button class="ad-close ad-close-small" data-action="real-close" aria-label="关闭此广告"><span aria-hidden="true">×</span></button><button class="ad-close-fake" data-action="fake-close" aria-label="广告内的大号关闭按钮"><span aria-hidden="true">×</span><small>关闭</small></button><div class="ad-topline"><span>门内加速服务</span><em>赞助</em></div><div class="speed-glyph" aria-hidden="true">≫</div><h3 id="ad-title">${state.adStep ? '已进入领取通道' : '距离抵达，只差一步'}</h3><p class="ad-desc">${state.adStep ? '你的点击已为你保留加速资格。' : '让等待更短，让抵达更近。'}</p><button class="ad-primary" data-action="claim">免费领取加速 →</button><p class="ad-fine">赞助内容 · 仅用于游戏内模拟</p></div>`,
+    gift: () => `<div class="ad ad-gift" role="region" aria-labelledby="ad-title" tabindex="-1">${closeButton('close')}<p class="ad-kind">门内生活 · 新客专享</p><div class="gift-badge" aria-hidden="true">${state.adStep ? '领取<br>成功' : '仅限<br>此刻'}</div><h3 class="ad-title" id="ad-title">${state.adStep ? '通行礼已领取' : '进门先领通行礼'}</h3><p class="ad-desc">${state.adStep ? '88 点已记入本次通行礼。' : '恭喜你！一份心意已送达'}</p><div class="coupon"><span>${state.adStep ? '领取成功 · 本次有效' : '你的专属通行好礼'}</span><strong>88</strong><i>点</i><small>${state.adStep ? '好礼已收下，前方仍有一段路。' : '距离更好的生活，只差一次点击'}</small></div><button class="ad-primary" data-action="${state.adStep ? 'return-task' : 'claim'}">${state.adStep ? '收下好礼，继续前往' : '立即领取'}</button><p class="ad-fine">赞助内容 · 仅用于游戏内模拟</p></div>`,
+    falseClose: () => `<div class="ad ad-speed" role="region" aria-labelledby="ad-title" tabindex="-1"><button class="ad-close ad-close-small" data-action="real-close" aria-label="关闭此广告"><span aria-hidden="true">×</span></button><button class="ad-close-fake" data-action="fake-close" aria-label="广告内的大号关闭按钮"><span aria-hidden="true">×</span><small>关闭</small></button><div class="ad-topline"><span>门内加速服务</span><em>赞助</em></div><div class="speed-glyph" aria-hidden="true">${state.adStep ? '✓' : '≫'}</div><h3 id="ad-title">${state.adStep ? '加速资格已领取' : '距离抵达，只差一步'}</h3><p class="ad-desc">${state.adStep ? '资格已为你保留，请继续完成余下通行流程。' : '让等待更短，让抵达更近。'}</p><button class="ad-primary" data-action="${state.adStep ? 'return-task' : 'claim'}">${state.adStep ? '继续前往 →' : '免费领取加速 →'}</button><p class="ad-fine">赞助内容 · 仅用于游戏内模拟</p></div>`,
     retention: () => `<div class="ad ad-retention" role="region" aria-labelledby="ad-title" tabindex="-1"><p class="ad-topline"><span>通行权益提醒</span><em>赞助内容</em></p><div class="retention-icon" aria-hidden="true">!</div><h3 class="ad-title" id="ad-title">${state.adStep ? '最后确认一次' : '确认放弃通行加速？'}</h3><p class="ad-desc">${state.adStep ? '现在离开，你将继续独自等待。' : '你的专属资格，即将随这次关闭失效。'}</p><p class="retention-count">${state.adStep ? 'CONFIRMATION 02 / 02' : 'CONFIRMATION 01 / 02'}</p><button class="ad-primary" data-action="keep">保留我的权益</button><button class="actual-close" data-action="decline">${state.adStep ? '确认放弃，继续原任务' : '放弃权益'}</button></div>`,
-    verification: () => `<div class="ad ad-verify" role="region" aria-labelledby="ad-title" tabindex="-1"><div class="ad-topline"><span>ARCHIVE / 07</span><em>赞助内容</em></div><h3 class="ad-title" id="ad-title">${state.adStep ? '持续通行服务' : '通行校验'}</h3><p class="ad-desc">${state.adStep ? '为下一次抵达，提前准备。' : '门已感知到你的到来。<br>请完成最后一步，继续通行。'}</p><div class="verify-code"><i aria-hidden="true">${state.adStep ? '∞' : 'Ⅲ'}</i><div>ACCESS PROTOCOL<br>${state.adStep ? 'CONTINUOUS SERVICE' : 'AWAITING VERIFICATION'}</div></div>${state.adStep ? `<label class="consent-row"><input id="consent-check" type="checkbox" ${consentChecked ? 'checked' : ''}><div>开通持续通行服务<span>这是游戏内的模拟选项</span></div></label><button class="ad-primary" data-action="consent">确认并继续</button>` : '<button class="ad-primary" data-action="verify">继续校验 →</button>'}<button class="actual-close" data-action="return-task">返回原任务</button></div>`,
+    verification: () => {
+      const complete = state.adStep === 2;
+      const title = complete ? (state.serviceConfirmed ? '持续通行服务已开启' : '通行校验已完成') : (state.adStep ? '持续通行服务' : '通行校验');
+      const description = complete ? (state.serviceConfirmed ? '已记录你的选择，通行校验已完成。' : '已跳过持续通行服务，通行校验已完成。') : (state.adStep ? '为下一次抵达，提前准备。' : '门已感知到你的到来。<br>请完成最后一步，继续通行。');
+      return `<div class="ad ad-verify" role="region" aria-labelledby="ad-title" tabindex="-1"><div class="ad-topline"><span>ARCHIVE / 07</span><em>赞助内容</em></div><h3 class="ad-title" id="ad-title">${title}</h3><p class="ad-desc">${description}</p><div class="verify-code"><i aria-hidden="true">${complete ? '✓' : state.adStep ? '∞' : 'Ⅲ'}</i><div>ACCESS PROTOCOL<br>${complete ? 'VERIFICATION COMPLETE' : state.adStep ? 'CONTINUOUS SERVICE' : 'AWAITING VERIFICATION'}</div></div>${complete ? '<p class="ad-desc">仅为游戏内模拟，不会产生真实订阅或扣费。</p><button class="ad-primary" data-action="return-task">完成校验，继续前往</button>' : state.adStep ? `<label class="consent-row"><input id="consent-check" type="checkbox" ${state.serviceSelected ? 'checked' : ''}><div>开通持续通行服务<span>这是游戏内的模拟选项</span></div></label><button class="ad-primary" data-action="consent">确认并继续</button>` : '<button class="ad-primary" data-action="verify">继续校验 →</button>'}${complete ? '' : '<button class="actual-close" data-action="return-task">返回原任务</button>'}</div>`;
+    },
     forced: () => `<div class="ad ad-forced" role="region" aria-labelledby="ad-title" tabindex="-1"><div class="forced-status"><div><p>必须完整观看</p><strong id="sponsor-seconds">30s</strong></div><div class="reception"><p>入口开放倒计时</p><strong id="receive-seconds">12s</strong></div></div><div class="sponsor-film"><small>MENNEI / SPONSORED FILM</small><div class="film-door" aria-hidden="true"></div><p id="ad-title">为你开启更远的门</p></div><div class="forced-playback"><span>完整观看后，即可进入</span><span id="playback-position">00:00 / 00:30</span></div><div class="ad-progress"><i id="ad-bar"></i></div><p class="forced-copy">你已到达。进入之前，请先看完这段赞助内容。</p><button class="blocked-close" data-action="blocked-close">播放结束后可关闭 ×</button></div>`
   };
   function renderAd() {
     const key = `${state.ad || ''}:${state.adStep}`;
     $('ad-host').hidden = !state.ad; $('ad-backdrop').hidden = !state.ad;
     if (key === adKey) return;
+    clearToast();
     const oldAd = adKey.split(':')[0]; adKey = key;
     $('ad-host').innerHTML = state.ad ? templates[state.ad]() : '';
     if (state.ad) {
@@ -124,11 +130,13 @@
     $('narrative').hidden = state.phase !== 'ready';
     const phase = state.phase + ':' + state.nodes + ':' + entering;
     if (phase !== currentPhase) {
+      const arrived = currentPhase.startsWith('arrival:') && state.phase === 'ready';
       currentPhase = phase;
       $('advance').disabled = state.phase !== 'ready' || entering;
       $('advance-label').textContent = ['Approach', 'Continue', 'Enter'][Math.min(2, state.nodes)];
       $('narrative-line').textContent = ['There is an opening.', 'A little further.', 'Just one more step.'][Math.min(2, state.nodes)];
       $('phase-copy').textContent = state.phase === 'submitting' ? 'The opening is here.' : '';
+      if (arrived) focusNext($('advance'));
     }
     renderAd();
     if (state.ad === 'forced') {
@@ -140,20 +148,15 @@
   }
   $('ad-host').addEventListener('click', event => {
     const button = event.target.closest('[data-action]'); if (!button) return;
-    const action = button.dataset.action, ad = state.ad, step = state.adStep;
+    const action = button.dataset.action;
     if (!engine.interact(action)) return;
     state = engine.snapshot();
-    if (ad === 'gift' && action === 'claim') toast('88 点已记入通行礼。', 'zh-Hans');
-    if (ad === 'falseClose' && action === 'fake-close') toast('已进入领取通道。请寻找返回原任务的入口。', 'zh-Hans');
-    if (action === 'consent') toast('校验仍未完成。你仍可返回原任务。', 'zh-Hans');
-    if (action === 'blocked-close') toast(`仍需观看 ${Math.ceil(state.sponsoredMs / 1000)} 秒。`, 'zh-Hans');
-    if (action === 'keep' && step) toast('已为你保留权益。', 'zh-Hans');
     render();
+    if (action === 'blocked-close') toast(`仍需观看 ${Math.ceil(state.sponsoredMs / 1000)} 秒。`, 'zh-Hans');
   });
   $('ad-host').addEventListener('change', event => {
     if (event.target.id !== 'consent-check') return;
-    consentChecked = event.target.checked;
-    if (engine.interact('toggle')) { state = engine.snapshot(); render(); }
+    if (engine.interact('toggle', event.target.checked)) { state = engine.snapshot(); render(); }
   });
   $('enter').addEventListener('click', start); $('replay').addEventListener('click', start); $('advance').addEventListener('click', advance);
   $('sound').addEventListener('click', toggleSound); $('pause').addEventListener('click', () => activeLayer === 'pause' ? resumeGame() : pauseGame());
