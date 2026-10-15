@@ -14,7 +14,11 @@
   function format(ms) { const s = Math.max(0, Math.ceil(ms / 1000)); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; }
   function toast(message, language = 'en') {
     clearTimeout(toastTimer); $('toast').lang = language; $('toast').textContent = message; $('toast').classList.add('visible');
-    toastTimer = setTimeout(() => $('toast').classList.remove('visible'), 2800);
+    toastTimer = setTimeout(clearToast, 2800);
+  }
+  function clearToast() {
+    clearTimeout(toastTimer);
+    $('toast').classList.remove('visible'); $('toast').textContent = ''; $('toast').lang = 'en';
   }
   function audioInit() {
     if (audio) return;
@@ -59,12 +63,12 @@
   }
   function resumeGame() { hideLayers(); engine.pause(false); last = performance.now(); syncNow(); }
   function goHome() {
-    hideLayers(false); clearTimeout(toastTimer); $('toast').classList.remove('visible'); engine.reset(); entering = false; entrance = 0; document.body.style.setProperty('--entry-progress', '1'); travel = 0; closing = 0; aperture = 0; consentChecked = true; adKey = ''; currentPhase = ''; syncNow(); focusNext($('enter'));
+    hideLayers(false); clearToast(); engine.reset(); entering = false; entrance = 0; document.body.style.setProperty('--entry-progress', '1'); travel = 0; closing = 0; aperture = 0; consentChecked = true; adKey = ''; currentPhase = ''; syncNow(); focusNext($('enter'));
   }
   function start() {
     if (entering) return;
     const fromTitle = state.status === 'title';
-    hideLayers(false); clearTimeout(toastTimer); $('toast').classList.remove('visible'); engine.start();
+    hideLayers(false); clearToast(); engine.start();
     consentChecked = true; travel = 0; closing = 0; aperture = 0; adKey = ''; currentPhase = '';
     entrance = fromTitle && !motionQuery.matches ? 0 : 1; entering = entrance < 1;
     document.body.style.setProperty('--entry-progress', String(entrance));
@@ -91,7 +95,7 @@
       tone(state.ad === 'forced' ? 115 : 390, .35, .03);
       focusNext($('ad-host').querySelector('.ad'));
     } else if (oldAd) {
-      clearTimeout(toastTimer); $('toast').classList.remove('visible');
+      clearToast();
       focusNext(state.status === 'ended' ? $('replay') : $('advance'));
     }
   }
@@ -101,7 +105,7 @@
       $('masthead').hidden = status !== 'playing';
       $('journey').hidden = status !== 'playing'; $('ending').hidden = status !== 'ended';
       if (status === 'ended') {
-        clearTimeout(toastTimer); $('toast').classList.remove('visible');
+        clearToast();
         tone(82, 2.6, .04); focusNext($('replay')); updateDrone();
       }
     }
