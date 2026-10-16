@@ -79,6 +79,11 @@ body[data-ad="true"] .journey { opacity: .18; }
 .ad-close-fake > span { font: 52px/.7 Arial, sans-serif; }
 .ad-close-fake > small { font: 10px/1.4 "PingFang SC", "Microsoft YaHei", sans-serif; margin-top: 5px; }
 .ad-close-fake:hover { filter: brightness(1.08); }
+.ad-purchase .ad-title { margin-top: 30px; }
+.purchase-plan { margin-top: 24px; padding: 22px 16px; text-align: center; color: #92151a; border: 1px solid #fff0b1; border-radius: 8px; background: radial-gradient(ellipse at top, #fffbed, transparent 80%), linear-gradient(130deg, #f4cb76, #ffe8b1 55%, #efb649); box-shadow: inset 0 0 0 5px #ffedbb66; }
+.purchase-plan > span, .purchase-plan > p { font-size: 11px; line-height: 1.8; }
+.purchase-plan strong { display: block; margin: 12px 0; font-size: clamp(48px, 10vw, 72px); line-height: 1.1; letter-spacing: -.05em; }
+.purchase-plan small { margin-right: 8px; font-size: 24px; font-weight: 400; }
 .speed-glyph { font: 140px/.9 Georgia, serif; letter-spacing: -.12em; margin: 20px 0 27px; overflow: hidden; color: #ffdf88; text-shadow: 0 3px 0 #ca7621, 0 7px 0 #76131c, 0 0 30px #ffc85c4d; }
 .ad-speed h3 { font-size: 25px; font-weight: 800; color: var(--ad-gold); text-shadow: 0 2px 0 #680b17; }
 .ad-retention { background: radial-gradient(ellipse at top, #fff8dc, transparent 75%), linear-gradient(140deg, #ffe7a6, #efbe5d); color: #86171c; border-color: #fff1bd; box-shadow: inset 0 0 0 5px #d79a3852, inset 0 0 0 6px #fff2c2, 0 24px 90px #000b; }

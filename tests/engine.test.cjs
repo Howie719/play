@@ -7,7 +7,7 @@ function secondAd(e) { e.start(); arrive(e); e.interact('close'); settle(e); arr
 function verificationAd(e) { secondAd(e); e.interact('real-close'); settle(e); arrive(e); }
 function route(e) {
   e.start(); arrive(e); e.interact('close'); settle(e);
-  arrive(e); e.interact('fake-close'); e.interact('decline'); e.interact('decline'); settle(e);
+  arrive(e); e.interact('fake-close'); e.interact('decline'); e.interact('decline'); e.interact('decline'); settle(e);
   arrive(e); e.interact('verify'); e.interact('return-task'); settle(e); e.tick(SETTINGS.submitMs);
 }
 test('A title screen and repeated clicks cannot advance the route', () => {
@@ -32,26 +32,55 @@ test('Claiming acceleration reaches its receipt, never the abandonment question'
   const receipt = e.snapshot(); assert.equal(e.interact('claim'), false); assert.deepEqual(e.snapshot(), receipt);
   e.interact('return-task'); assert.equal(e.snapshot().nodes, 2); assert.equal(e.snapshot().ad, null);
 });
-test('The large false close opens retention; refusing twice returns without claiming', () => {
+test('The large false close opens a service offer; declining leads to retention', () => {
   const e = createEngine(); secondAd(e); e.interact('fake-close');
+  assert.equal(e.snapshot().ad, 'purchase'); assert.equal(e.snapshot().nodes, 1);
+  assert.equal(e.snapshot().priorityPurchased, false); assert.equal(e.interact('return-task'), false);
+  e.interact('decline');
   assert.equal(e.snapshot().ad, 'retention'); assert.equal(e.snapshot().nodes, 1);
   e.interact('decline'); assert.equal(e.snapshot().adStep, 1); assert.equal(e.snapshot().nodes, 1);
   e.interact('decline'); assert.equal(e.snapshot().nodes, 2); assert.equal(e.snapshot().ad, null);
   assert.equal(e.snapshot().accelerationClaimed, false);
+  assert.equal(e.snapshot().priorityPurchased, false);
+});
+test('Opening a purchase offer never buys; purchasing produces one receipt and resets cleanly', () => {
+  for (const claimFirst of [false, true]) {
+    const e = createEngine(); secondAd(e);
+    if (claimFirst) e.interact('claim');
+    e.interact('fake-close'); assert.equal(e.snapshot().ad, 'purchase');
+    assert.equal(e.snapshot().priorityPurchased, false);
+    e.pause(true); const paused = e.snapshot(); assert.equal(e.interact('purchase'), false); assert.deepEqual(e.snapshot(), paused);
+    e.pause(false); assert.equal(e.interact('purchase'), true);
+    assert.equal(e.snapshot().ad, 'purchase'); assert.equal(e.snapshot().adStep, 1);
+    assert.equal(e.snapshot().priorityPurchased, true); assert.equal(e.snapshot().nodes, 1);
+    const receipt = e.snapshot(); assert.equal(e.interact('purchase'), false); assert.equal(e.interact('decline'), false); assert.deepEqual(e.snapshot(), receipt);
+    e.interact('return-task'); assert.equal(e.snapshot().nodes, 2); assert.equal(e.snapshot().ad, null);
+    e.start(); assert.equal(e.snapshot().priorityPurchased, false);
+    secondAd(e); e.interact('fake-close'); e.interact('purchase'); e.reset(); assert.equal(e.snapshot().priorityPurchased, false);
+  }
+});
+test('The purchase page true close exits directly from either the offer or receipt', () => {
+  for (const buyFirst of [false, true]) {
+    const e = createEngine(); secondAd(e); e.interact('fake-close');
+    if (buyFirst) e.interact('purchase');
+    assert.equal(e.interact('real-close'), true); assert.equal(e.snapshot().ad, null); assert.equal(e.snapshot().nodes, 2);
+    assert.equal(e.snapshot().priorityPurchased, buyFirst); assert.equal(e.snapshot().seen.includes('retention'), false);
+  }
 });
 test('Keeping the benefit exits either retention step into a claimed receipt', () => {
   for (const declineFirst of [false, true]) {
-    const e = createEngine(); secondAd(e); e.interact('fake-close');
+    const e = createEngine(); secondAd(e); e.interact('fake-close'); e.interact('decline');
     if (declineFirst) e.interact('decline');
     e.interact('keep'); assert.equal(e.snapshot().ad, 'falseClose'); assert.equal(e.snapshot().adStep, 1);
     assert.equal(e.snapshot().accelerationClaimed, true); assert.equal(e.snapshot().nodes, 1);
+    assert.equal(e.snapshot().priorityPurchased, false);
     assert.equal(e.interact('keep'), false);
     e.interact('return-task'); assert.equal(e.snapshot().nodes, 2);
   }
 });
 test('Abandoning an already claimed benefit clears it', () => {
   const e = createEngine(); secondAd(e); e.interact('claim'); e.interact('fake-close');
-  e.interact('decline'); e.interact('decline'); assert.equal(e.snapshot().accelerationClaimed, false);
+  e.interact('decline'); e.interact('decline'); e.interact('decline'); assert.equal(e.snapshot().accelerationClaimed, false);
 });
 test('The small true close dismisses the offer or receipt directly', () => {
   for (const claimFirst of [false, true]) {
@@ -90,7 +119,7 @@ test('Confirmation honors the checkbox and produces a distinct terminal receipt'
 });
 test('The original route reaches the final sponsored interruption', () => {
   const e = createEngine(); route(e);
-  assert.deepEqual(e.snapshot().seen, ['gift', 'falseClose', 'retention', 'verification', 'forced']);
+  assert.deepEqual(e.snapshot().seen, ['gift', 'falseClose', 'purchase', 'retention', 'verification', 'forced']);
   assert.equal(e.snapshot().nodes, 3); assert.equal(e.snapshot().phase, 'receiving');
 });
 test('12 seconds of reception expire while 18 seconds of advertising remain', () => {
@@ -98,7 +127,7 @@ test('12 seconds of reception expire while 18 seconds of advertising remain', ()
   assert.equal(e.snapshot().status, 'playing');
   e.tick(SETTINGS.receiveMs);
   assert.equal(e.snapshot().status, 'ended'); assert.equal(e.snapshot().reason, 'window');
-  assert.equal(e.snapshot().sponsoredMs, 18000); assert.equal(e.snapshot().interactions, 7);
+  assert.equal(e.snapshot().sponsoredMs, 18000); assert.equal(e.snapshot().interactions, 8);
   const before = e.snapshot(); e.tick(100000); e.interact('blocked-close'); assert.deepEqual(e.snapshot(), before);
 });
 test('Pause freezes both clocks and all advertisement interactions', () => {

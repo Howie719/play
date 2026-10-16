@@ -103,10 +103,26 @@ test('Actual claim buttons render receipts instead of abandonment questions', ()
   assert.equal(a.heading(), '通行礼已领取'); assert.doesNotMatch(a.html(), /data-action="claim"/);
   a.action('return-task'); settle(a); assert.equal(a.focus(), 'advance'); arrive(a); a.action('claim');
   assert.equal(a.heading(), '加速资格已领取'); assert.doesNotMatch(a.html(), /确认放弃|免费领取加速/);
-  a.action('fake-close'); assert.equal(a.heading(), '确认放弃通行加速？');
+  a.action('fake-close'); assert.equal(a.heading(), '解锁优享通行');
+  a.action('decline'); assert.equal(a.heading(), '确认放弃通行加速？');
   a.action('decline'); assert.equal(a.heading(), '最后确认一次');
   a.action('keep'); assert.equal(a.heading(), '加速资格已领取');
   a.action('real-close'); settle(a); assert.equal(a.get('ad-host').hidden, true); assert.equal(a.focus(), 'advance');
+});
+
+test('The false-close purchase page distinguishes opening, purchasing, and closing', () => {
+  for (const buyFirst of [false, true]) {
+    const a = app(); start(a); arrive(a); a.action('close'); settle(a); arrive(a); a.action('fake-close');
+    assert.equal(a.heading(), '解锁优享通行'); assert.equal(a.state().priorityPurchased, false);
+    assert.match(a.html(), /立即开通 · ¥9.90/); assert.match(a.html(), /不会产生真实扣费/);
+    if (buyFirst) {
+      a.action('purchase'); assert.equal(a.heading(), '优享通行已开通');
+      assert.equal(a.state().priorityPurchased, true); assert.doesNotMatch(a.html(), /data-action="purchase"|data-action="decline"/);
+      a.action('return-task');
+    } else a.action('real-close');
+    settle(a); assert.equal(a.get('ad-host').hidden, true); assert.equal(a.focus(), 'advance');
+    assert.equal(a.state().nodes, 2);
+  }
 });
 
 test('The checkbox and confirmation handlers render different, final results', () => {

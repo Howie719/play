@@ -12,7 +12,7 @@
       state = { status: 'title', phase: 'ready', paused: false, nodes: 0, stones: 0, interactions: 0,
         seen: [], ad: null, adStep: 0, phaseMs: 0, journeyMs: config.journeyMs,
         receiveMs: config.receiveMs, sponsoredMs: config.sponsoredMs, reason: null, revision: 0,
-        giftClaimed: false, accelerationClaimed: false, serviceSelected: true, serviceConfirmed: false, verificationComplete: false };
+        giftClaimed: false, accelerationClaimed: false, priorityPurchased: false, serviceSelected: true, serviceConfirmed: false, verificationComplete: false };
       return snapshot();
     }
     function changed() { state.revision++; }
@@ -47,6 +47,7 @@
       const allowed = {
         gift: state.adStep === 0 ? ['claim', 'close'] : ['return-task', 'close'],
         falseClose: state.adStep === 0 ? ['fake-close', 'claim', 'real-close'] : ['fake-close', 'return-task', 'real-close'],
+        purchase: state.adStep === 0 ? ['purchase', 'decline', 'real-close'] : ['return-task', 'real-close'],
         retention: ['keep', 'decline'],
         verification: [['verify', 'return-task'], ['toggle', 'return-task', 'consent'], ['return-task']][state.adStep],
         forced: ['blocked-close']
@@ -62,7 +63,12 @@
         case 'falseClose':
           if (action === 'real-close' || action === 'return-task') completeNode();
           else if (action === 'claim') { state.accelerationClaimed = true; state.adStep = 1; }
-          else showAd('retention');
+          else showAd('purchase');
+          break;
+        case 'purchase':
+          if (action === 'purchase') { state.priorityPurchased = true; state.adStep = 1; }
+          else if (action === 'decline') showAd('retention');
+          else completeNode();
           break;
         case 'retention':
           if (action === 'keep') { state.accelerationClaimed = true; showAd('falseClose'); state.adStep = 1; }
