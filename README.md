@@ -1,9 +1,11 @@
-# THRESHOLD
+# Browser work
 
-**Skip Ad to Live · v0.7.1**
+**v0.7.2**
 HUA Chencheng × YANG Haowei · Re-Imagine Internet
 
 There is an opening. Move towards it. Each interruption promises to bring it closer.
+
+The work has no displayed title. The browser tab uses the functional label “Begin”.
 
 A small, silent browser work with monochrome architecture, red-and-gold advertising, three movements, six possible simulated ad formats, and an unresolved ending. The game interface is in English; the advertisements remain in Chinese. There is no message to deliver, explanatory notes panel, score screen, or participation summary. The soundtrack and sound control have been removed; light, motion, and interruption carry the experience.
 
