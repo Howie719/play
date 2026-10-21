@@ -1,6 +1,6 @@
 # Browser work
 
-**v0.8.0**
+**v0.8.0**  
 HUA Chencheng × YANG Haowei · Re-Imagine Internet
 
 There is an opening. Move towards it. Each interruption promises to bring it closer.
