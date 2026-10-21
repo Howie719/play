@@ -117,23 +117,106 @@ test('Confirmation honors the checkbox and produces a distinct terminal receipt'
     e.interact('return-task'); assert.equal(e.snapshot().nodes, 3); assert.equal(e.snapshot().ad, null);
   }
 });
-test('The original route reaches the final sponsored interruption', () => {
+function activatePass(e) { e.interact('claim-pass'); e.interact('activate-pass'); }
+function finishRound(e) {
+  const kind = e.snapshot().passageRound % 3;
+  if (kind === 0) { e.interact('hold-start'); e.tick(SETTINGS.holdMs); }
+  else if (kind === 1) for (let n = 0; n < 3; n++) e.interact('light-' + n);
+  else { e.interact('start-check'); e.tick(SETTINGS.checkMs); }
+}
+test('The route reaches one continuous passage flow instead of the compulsory film', () => {
   const e = createEngine(); route(e);
-  assert.deepEqual(e.snapshot().seen, ['gift', 'falseClose', 'purchase', 'retention', 'verification', 'forced']);
-  assert.equal(e.snapshot().nodes, 3); assert.equal(e.snapshot().phase, 'receiving');
+  assert.deepEqual(e.snapshot().seen, ['gift', 'falseClose', 'purchase', 'retention', 'verification', 'passage']);
+  assert.equal(e.snapshot().nodes, 3); assert.equal(e.snapshot().phase, 'passage');
+  assert.equal(e.snapshot().passagePermille, 995);
+  e.interact('claim-pass'); assert.equal(e.snapshot().adStep, 1); assert.equal(e.snapshot().passagePermille, 997);
+  assert.equal(e.interact('claim-pass'), false); e.interact('activate-pass'); assert.equal(e.snapshot().adStep, 2);
 });
-test('12 seconds of reception expire while 18 seconds of advertising remain', () => {
-  const e = createEngine(); route(e); e.interact('blocked-close');
-  assert.equal(e.snapshot().status, 'playing');
-  e.tick(SETTINGS.receiveMs);
-  assert.equal(e.snapshot().status, 'ended'); assert.equal(e.snapshot().reason, 'window');
-  assert.equal(e.snapshot().sponsoredMs, 18000); assert.equal(e.snapshot().interactions, 8);
-  const before = e.snapshot(); e.tick(100000); e.interact('blocked-close'); assert.deepEqual(e.snapshot(), before);
+test('Each completed task preserves a remainder through many subdivisions', () => {
+  const e = createEngine({ journeyMs: 1000000000 }); route(e); activatePass(e);
+  for (let round = 0; round < 100; round++) {
+    assert.equal(e.snapshot().passageRound, round); assert.equal(e.snapshot().adStep, 2);
+    finishRound(e); assert.equal(e.snapshot().adStep, 3); assert.equal(e.snapshot().passagePermille, 999);
+    assert.equal(e.snapshot().status, 'playing'); assert.equal(e.interact('claim-pass'), false);
+    e.interact('continue-pass'); assert.equal(e.snapshot().passageTaskMs, 0); assert.equal(e.snapshot().passageLights, 0);
+  }
+  assert.equal(e.snapshot().seen.filter(x => x === 'passage').length, 1);
 });
-test('Pause freezes both clocks and all advertisement interactions', () => {
-  const e = createEngine(); route(e); e.tick(1500); e.pause(true); const before = e.snapshot();
-  e.tick(60000); assert.equal(e.interact('blocked-close'), false); assert.equal(e.advance(), false); assert.deepEqual(e.snapshot(), before);
-  e.pause(false); e.tick(1000); assert.equal(e.snapshot().receiveMs, before.receiveMs - 1000);
+test('Hold progress persists, repeats are rejected, and pause releases the held input', () => {
+  const e = createEngine(); route(e); activatePass(e);
+  assert.equal(e.interact('light-0'), false); assert.equal(e.interact('start-check'), false);
+  e.interact('hold-start'); assert.equal(e.interact('hold-start'), false); e.tick(600);
+  e.pause(true); const before = e.snapshot(); e.tick(60000);
+  assert.equal(e.interact('hold-pulse'), false); assert.deepEqual(e.snapshot(), before);
+  e.pause(false); e.tick(1000); assert.equal(e.snapshot().passageTaskMs, 600);
+  assert.equal(e.snapshot().journeyMs, before.journeyMs - 1000);
+  e.interact('hold-start'); e.tick(SETTINGS.holdMs - 600); assert.equal(e.snapshot().adStep, 3);
+});
+test('Repeated clicks provide an alternative to holding, and light choices count once', () => {
+  const e = createEngine(); route(e); activatePass(e);
+  for (let n = 0; n < 4; n++) assert.equal(e.interact('hold-pulse'), true);
+  assert.equal(e.snapshot().adStep, 3); assert.equal(e.interact('hold-pulse'), false);
+  e.interact('continue-pass'); assert.equal(e.interact('hold-start'), false);
+  e.interact('light-2'); assert.equal(e.interact('light-2'), false); assert.equal(e.snapshot().passageLights, 4);
+  e.interact('light-0'); e.interact('light-1'); assert.equal(e.snapshot().adStep, 3);
+});
+test('A timed check freezes during pause and completes once after resuming', () => {
+  const e = createEngine(); route(e); activatePass(e);
+  finishRound(e); e.interact('continue-pass'); finishRound(e); e.interact('continue-pass');
+  e.interact('start-check'); assert.equal(e.interact('start-check'), false); e.tick(800);
+  e.pause(true); const before = e.snapshot(); e.tick(30000); assert.deepEqual(e.snapshot(), before);
+  e.pause(false); e.tick(SETTINGS.checkMs - 800); assert.equal(e.snapshot().adStep, 3);
+  assert.equal(e.snapshot().passageRunning, false);
+});
+test('True close saves each passage screen and can reopen without adding a node', () => {
+  const e = createEngine(); route(e);
+  for (let step = 0; step < 4; step++) {
+    assert.equal(e.snapshot().adStep, step);
+    e.interact('close-pass'); assert.equal(e.snapshot().ad, null); assert.equal(e.snapshot().phase, 'waiting');
+    e.tick(200); assert.equal(e.advance(), true); assert.equal(e.snapshot().adStep, step); assert.equal(e.snapshot().nodes, 3);
+    if (step === 0) e.interact('claim-pass');
+    if (step === 1) e.interact('activate-pass');
+    if (step === 2) finishRound(e);
+  }
+});
+test('Closing an active check preserves partial progress but requires starting it again', () => {
+  const e = createEngine(); route(e); activatePass(e);
+  finishRound(e); e.interact('continue-pass'); finishRound(e); e.interact('continue-pass');
+  e.interact('start-check'); e.tick(500); e.interact('close-pass'); e.tick(3000); e.advance(); e.tick(2000);
+  assert.equal(e.snapshot().passageTaskMs, 500); assert.equal(e.snapshot().passageRunning, false);
+  e.interact('start-check'); e.tick(SETTINGS.checkMs - 500); assert.equal(e.snapshot().adStep, 3);
+});
+test('A purchase from the last task returns to that task or its own completion receipt', () => {
+  for (const exit of ['decline', 'real-close', 'return-task']) {
+    const e = createEngine(); route(e); activatePass(e); e.interact('hold-pulse');
+    e.interact('passage-offer'); assert.equal(e.snapshot().purchaseOrigin, 'passage');
+    if (exit === 'return-task') e.interact('purchase');
+    e.interact(exit); assert.equal(e.snapshot().ad, 'passage'); assert.equal(e.snapshot().nodes, 3);
+    assert.equal(e.snapshot().adStep, exit === 'return-task' ? 3 : 2);
+    assert.equal(e.snapshot().priorityApplied, exit === 'return-task');
+    assert.equal(e.snapshot().passageTaskMs, SETTINGS.holdMs / 4);
+  }
+});
+test('An earlier purchase supplies exactly one local completion, while the goal remains pending', () => {
+  const e = createEngine(); secondAd(e); e.interact('fake-close'); e.interact('purchase'); e.interact('return-task'); settle(e);
+  arrive(e); e.interact('return-task'); settle(e); e.tick(SETTINGS.submitMs); activatePass(e);
+  assert.equal(e.interact('use-priority'), true); assert.equal(e.snapshot().adStep, 3);
+  assert.equal(e.snapshot().passagePaidRound, true); assert.equal(e.snapshot().passagePermille, 999);
+  e.interact('continue-pass'); assert.equal(e.interact('use-priority'), false); assert.equal(e.interact('passage-offer'), false);
+  e.start(); assert.equal(e.snapshot().priorityApplied, false); assert.equal(e.snapshot().passageRound, 0);
+});
+test('The journey deadline ends every final task, hidden card, and purchase screen coherently', () => {
+  for (const screen of ['hold', 'hidden', 'purchase', 'receipt', 'check']) {
+    const e = createEngine(); route(e); activatePass(e);
+    if (screen === 'hidden') e.interact('close-pass');
+    else if (screen === 'purchase') e.interact('passage-offer');
+    else if (screen === 'receipt') finishRound(e);
+    else if (screen === 'check') { finishRound(e); e.interact('continue-pass'); finishRound(e); e.interact('continue-pass'); e.interact('start-check'); }
+    else e.interact('hold-start');
+    e.tick(e.snapshot().journeyMs); assert.equal(e.snapshot().status, 'ended'); assert.equal(e.snapshot().reason, 'journey');
+    assert.equal(e.snapshot().ad, null); assert.equal(e.snapshot().passageHolding, false); assert.equal(e.snapshot().passageRunning, false);
+    const before = e.snapshot(); e.interact('continue-pass'); e.tick(10000); assert.deepEqual(e.snapshot(), before);
+  }
 });
 test('Walking, settling and submitting respect chronological timer boundaries', () => {
   const e = createEngine(); e.start(); e.advance(); e.tick(SETTINGS.walkMs + 300);
@@ -158,6 +241,6 @@ test('Replay and reset clear all claimed benefits and service choices', () => {
   e.reset(); assert.equal(e.snapshot().status, 'title'); assert.equal(e.snapshot().ad, null);
 });
 test('Snapshots do not expose mutable internal collections', () => {
-  const e = createEngine(); const s = e.snapshot(); s.seen.push('forced'); s.config.receiveMs = 0;
-  assert.deepEqual(e.snapshot().seen, []); assert.equal(e.snapshot().config.receiveMs, SETTINGS.receiveMs);
+  const e = createEngine(); const s = e.snapshot(); s.seen.push('forced'); s.config.holdMs = 0;
+  assert.deepEqual(e.snapshot().seen, []); assert.equal(e.snapshot().config.holdMs, SETTINGS.holdMs);
 });
